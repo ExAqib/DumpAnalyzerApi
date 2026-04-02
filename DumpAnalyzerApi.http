@@ -1,0 +1,6 @@
+@DumpAnalyzerApi_HostAddress = http://localhost:5168
+
+GET {{DumpAnalyzerApi_HostAddress}}/weatherforecast/
+Accept: application/json
+
+###
