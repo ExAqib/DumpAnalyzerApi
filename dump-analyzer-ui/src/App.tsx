@@ -1,5 +1,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import {
+  ClientSubscriptionManagerDto,
+  getClientSubscriptionManagers,
   getInstalledHashMap,
   getOverview,
   getOwnershipMap,
@@ -32,6 +34,7 @@ function App() {
   const [topicSubscriptions, setTopicSubscriptionsState] = useState<unknown>(null)
   const [subscriptionId, setSubscriptionId] = useState('')
   const [subscriptionDetail, setSubscriptionDetailState] = useState<unknown>(null)
+  const [clientSubscriptionManagers, setClientSubscriptionManagersState] = useState<ClientSubscriptionManagerDto[]>([])
 
   const tokenShort = useMemo(() => (token ? `${token.slice(0, 8)}…${token.slice(-6)}` : ''), [token])
 
@@ -64,6 +67,7 @@ function App() {
     setTopicSubscriptionsState(null)
     setSubscriptionId('')
     setSubscriptionDetailState(null)
+    setClientSubscriptionManagersState([])
   }
 
   useEffect(() => {
@@ -129,6 +133,9 @@ function App() {
     if (tab === 'pubsub' && topics.length === 0) {
       refreshTopics()
     }
+    if (tab === 'pubsub' && clientSubscriptionManagers.length === 0) {
+      refreshClientSubscriptionManagers()
+    }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [tab, token])
 
@@ -166,6 +173,21 @@ function App() {
     }
   }
 
+  async function refreshClientSubscriptionManagers() {
+    if (!token) return
+    setError(null)
+    setBusy(true)
+    try {
+      const res = await getClientSubscriptionManagers(token)
+      setClientSubscriptionManagersState(res)
+    } catch (e: any) {
+      setError(e?.message ?? 'Failed to load client subscription managers')
+      if (e?.status === 401) handleLogout()
+    } finally {
+      setBusy(false)
+    }
+  }
+
   function JsonBlock({ value }: { value: unknown }) {
     return <pre>{value === null ? 'null' : JSON.stringify(value, null, 2)}</pre>
   }
@@ -186,6 +208,25 @@ function App() {
         <div style={{ fontSize: 18, fontWeight: 700 }}>{value}</div>
       </div>
     )
+  }
+
+  function formatDisplayDate(value: string | null | undefined): string {
+    if (!value) return 'N/A'
+    const dt = new Date(value)
+    if (Number.isNaN(dt.getTime())) return String(value)
+
+    const day = String(dt.getDate()).padStart(2, '0')
+    const month = dt.toLocaleString('en-US', { month: 'short' })
+    const year = String(dt.getFullYear()).slice(-2)
+
+    let hours = dt.getHours()
+    const minutes = String(dt.getMinutes()).padStart(2, '0')
+    const seconds = String(dt.getSeconds()).padStart(2, '0')
+    const ampm = hours >= 12 ? 'PM' : 'AM'
+    hours = hours % 12
+    if (hours === 0) hours = 12
+
+    return `${day}-${month}-${year} ${String(hours).padStart(2, '0')}:${minutes}:${seconds} ${ampm}`
   }
 
   return (
@@ -263,6 +304,7 @@ function App() {
                   <OverviewStat label="Cache Count" value={readOverviewValue(overview, 'CacheCount')} />
                   <OverviewStat label="Install Type" value={readOverviewValue(overview, 'InstallType')} />
                   <OverviewStat label="Process ID" value={readOverviewValue(overview, 'ProcessId')} />
+                  <OverviewStat label="Message Manager Last Time" value={formatDisplayDate(readOverviewValue(overview, 'MessageManagerLastTime'))} />
                 </div>
                 <div className="muted2" style={{ marginBottom: 8 }}>
                   Raw response
@@ -409,6 +451,38 @@ function App() {
                       </button>
                     </div>
                     <JsonBlock value={subscriptionDetail} />
+                  </div>
+
+                  <div>
+                    <div className="fieldRow" style={{ justifyContent: 'space-between', marginBottom: 10 }}>
+                      <div className="sectionTitle" style={{ margin: 0 }}>
+                        Client subscription managers
+                      </div>
+                      <button disabled={busy} onClick={refreshClientSubscriptionManagers}>
+                        Refresh
+                      </button>
+                    </div>
+                    {clientSubscriptionManagers.length === 0 ? (
+                      <div className="muted">No client subscription manager details returned yet.</div>
+                    ) : (
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                        {clientSubscriptionManagers.map((item, idx) => (
+                          <div key={`${item.ClientID}-${idx}`} className="panel" style={{ padding: 12 }}>
+                            <div style={{ display: 'flex', justifyContent: 'space-between', gap: 12, marginBottom: 8 }}>
+                              <strong>{item.ClientID || '(unknown client)'}</strong>
+                              <span className="muted2">Messages: {item.MessageCount}</span>
+                            </div>
+                            <div className="muted2" style={{ marginBottom: 6 }}>
+                              Last activity time: {formatDisplayDate(item.LastActivityTime)}
+                            </div>
+                            <div className="muted2" style={{ marginBottom: 6 }}>
+                              Update time: {formatDisplayDate(item.UpdateTime)}
+                            </div>
+                            <div className="muted2">Poll time: {formatDisplayDate(item.PollTime)}</div>
+                          </div>
+                        ))}
+                      </div>
+                    )}
                   </div>
                 </div>
               </div>

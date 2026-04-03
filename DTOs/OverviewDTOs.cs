@@ -1,3 +1,4 @@
+
 namespace DumpAnalyzerApi.DTOs;
 
 public class CacheOverviewResponse
@@ -16,4 +17,5 @@ public class CacheOverviewResponse
     public string InstallType { get; set; } // Framework/core
 
     public int ProcessId { get; set; }
+    public DateTime? MessageManagerLastTime { get; internal set; }
 }

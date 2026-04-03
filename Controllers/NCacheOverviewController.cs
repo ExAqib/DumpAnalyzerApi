@@ -37,6 +37,9 @@ public class NCacheOverviewController : ControllerBase
 
         var runtimeContextNavigator = clrReader.From(clrObject);
 
+        var messageManagerClr  = runtime.Heap.EnumerateObjects().Where(obj => obj.Type?.Name == "Alachisoft.NCache.Caching.Messaging.MessageManager").First();
+
+
         var response = new CacheOverviewResponse
         {
             CacheName = runtimeContextNavigator
@@ -88,7 +91,13 @@ public class NCacheOverviewController : ControllerBase
             CacheSize = 0,
 
             InstallType = Util.GetInstallVersion(runtime),
-            ProcessId = Util.GetProcessId(runtime)
+            ProcessId = Util.GetProcessId(runtime),
+            MessageManagerLastTime = new ClrObjectReader().
+                        From(messageManagerClr)
+                        .DateTimeNavigator("_expirationTimestamp")
+                        .ReadDateTime()
+
+
         };
 
         return Ok(response);

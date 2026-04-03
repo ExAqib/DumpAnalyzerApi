@@ -1,5 +1,6 @@
 using DumpAnalyzerApi.DTOs;
 using DumpAnalyzerApi.Logger;
+using DumpAnalyzerApi.PubSub;
 using DumpAnalyzerApi.Services;
 using Microsoft.AspNetCore.Mvc;
 
@@ -58,5 +59,23 @@ public class NCachePubSubController : ControllerBase
             Clients = new List<ClientDto>(),
             Messages = new List<MessageDto>()
         });
+    }
+
+    [HttpGet("client-subscription-managers")]
+    public IActionResult GetClientSubscriptionManagers([FromHeader(Name = "token")] Guid token)
+    {
+        var dataTarget = _sessionManager.GetSession(token);
+        if (dataTarget == null) return Unauthorized(new { Error = "Invalid or expired token." });
+
+        using var runtime = dataTarget.ClrVersions[0].CreateRuntime();
+        var heap = runtime.Heap;
+
+        var managers = heap.EnumerateObjects()
+            .Where(obj => obj.Type?.Name == "Alachisoft.NCache.Caching.Messaging.ClientSubscriptionManager" || 
+            obj.Type?.Name == "Alachisoft.NCache.Caching.Messaging.EventMessagesClientSubscriptionManager")
+            .Select(obj => ClientSubscriptionManager.Analyze(obj, heap))
+            .ToList();
+
+        return Ok(managers);
     }
 }

@@ -37,6 +37,11 @@ namespace DumpAnalyzerApi.Navigators
             return new ListNavigator(_current, _reader, fieldName);
         }
 
+        public DatetimeNavigator DateTimeNavigator(string fieldName)
+        {
+            return new DatetimeNavigator(_current, _reader, fieldName);
+        }
+
         public DictionaryNavigator Dictionary(string fieldName)
         {
             return new DictionaryNavigator(_current, _reader, fieldName);

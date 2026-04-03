@@ -45,6 +45,13 @@ export type TopicSubscriptionDetailDto = {
   ConnectedClients: string[]
   ExpirationTime: number
 }
+export type ClientSubscriptionManagerDto = {
+  ClientID: string
+  LastActivityTime: string | null
+  UpdateTime: string | null
+  PollTime: string | null
+  MessageCount: number
+}
 
 export async function loadDump(path: string): Promise<{ token: string }> {
   // Prefer the explicit dump controller route (matches your current MVP).
@@ -144,5 +151,21 @@ export async function getTopicSubscriptions(token: string, topicName: string): P
 
 export async function getSubscription(token: string, subscriptionId: string): Promise<SubscriptionResponse> {
   return apiFetch<SubscriptionResponse>(`/ncache/pub-sub/subscriptions/${encodeURIComponent(subscriptionId)}`, { token })
+}
+
+export async function getClientSubscriptionManagers(token: string): Promise<ClientSubscriptionManagerDto[]> {
+  const res = await apiFetch<unknown>('/ncache/pub-sub/client-subscription-managers', { token })
+  if (!Array.isArray(res)) return []
+
+  return res.map((item) => {
+    const obj = item as Record<string, unknown>
+    return {
+      ClientID: String(readAny(obj, 'ClientID', '') ?? ''),
+      LastActivityTime: (readAny(obj, 'LastActivityTime', null) as string | null) ?? null,
+      UpdateTime: (readAny(obj, 'UpdateTime', null) as string | null) ?? null,
+      PollTime: (readAny(obj, 'PollTime', null) as string | null) ?? null,
+      MessageCount: Number(readAny(obj, 'MessageCount', 0) ?? 0),
+    }
+  })
 }
 
