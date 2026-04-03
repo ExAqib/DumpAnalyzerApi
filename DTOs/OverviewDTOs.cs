@@ -12,4 +12,8 @@ public class CacheOverviewResponse
     public string InstallingViewId { get; set; } = string.Empty;
     public bool IsStateTransfer { get; set; }
     public long CacheSize { get; set; } // Based on usual cache size type
+
+    public string InstallType { get; set; } // Framework/core
+
+    public int ProcessId { get; set; }
 }

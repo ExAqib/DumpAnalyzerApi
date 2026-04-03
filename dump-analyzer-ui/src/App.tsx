@@ -8,8 +8,11 @@ import {
   getTopicSubscriptions,
   getTopics,
   loadDump,
+  TopicDto,
 } from './api/dumpAnalyzerApi'
 import { clearToken, getLastDumpPath, getToken, setLastDumpPath, setToken } from './lib/session'
+
+type OverviewModel = Record<string, unknown> | null
 
 function App() {
   const [token, setTokenState] = useState<string | null>(() => getToken())
@@ -19,13 +22,13 @@ function App() {
 
   const [tab, setTab] = useState<'overview' | 'core' | 'pubsub'>('overview')
 
-  const [overview, setOverviewState] = useState<unknown>(null)
+  const [overview, setOverviewState] = useState<OverviewModel>(null)
   const [ownershipMap, setOwnershipMapState] = useState<unknown>(null)
   const [previousHashMap, setPreviousHashMapState] = useState<unknown>(null)
   const [installedHashMap, setInstalledHashMapState] = useState<unknown>(null)
 
-  const [topics, setTopicsState] = useState<string[]>([])
-  const [selectedTopic, setSelectedTopic] = useState<string | null>(null)
+  const [topics, setTopicsState] = useState<TopicDto[]>([])
+  const [selectedTopic, setSelectedTopic] = useState<TopicDto | null>(null)
   const [topicSubscriptions, setTopicSubscriptionsState] = useState<unknown>(null)
   const [subscriptionId, setSubscriptionId] = useState('')
   const [subscriptionDetail, setSubscriptionDetailState] = useState<unknown>(null)
@@ -109,7 +112,7 @@ function App() {
     try {
       const list = await getTopics(token)
       setTopicsState(list)
-      if (list.length && !selectedTopic) setSelectedTopic(list[0])
+      if (list.length) setSelectedTopic(list[0])
     } catch (e: any) {
       setError(e?.message ?? 'Failed to load topics')
       if (e?.status === 401) handleLogout()
@@ -136,7 +139,7 @@ function App() {
       setError(null)
       setTopicSubscriptionsState(null)
       try {
-        const res = await getTopicSubscriptions(token, selectedTopic)
+        const res = await getTopicSubscriptions(token, selectedTopic.TopicName)
         if (!cancelled) setTopicSubscriptionsState(res)
       } catch (e: any) {
         if (!cancelled) setError(e?.message ?? 'Failed to load topic subscriptions')
@@ -165,6 +168,24 @@ function App() {
 
   function JsonBlock({ value }: { value: unknown }) {
     return <pre>{value === null ? 'null' : JSON.stringify(value, null, 2)}</pre>
+  }
+
+  function readOverviewValue(obj: OverviewModel, key: string): string {
+    if (!obj) return 'N/A'
+    const camelKey = key.charAt(0).toLowerCase() + key.slice(1)
+    const value = obj[key] ?? obj[camelKey]
+    return value === undefined || value === null || value === '' ? 'N/A' : String(value)
+  }
+
+  function OverviewStat({ label, value }: { label: string; value: string }) {
+    return (
+      <div className="panel" style={{ padding: 12 }}>
+        <div className="muted2" style={{ fontSize: 12, marginBottom: 4 }}>
+          {label}
+        </div>
+        <div style={{ fontSize: 18, fontWeight: 700 }}>{value}</div>
+      </div>
+    )
   }
 
   return (
@@ -235,6 +256,17 @@ function App() {
             {tab === 'overview' ? (
               <div className="panel">
                 <div className="sectionTitle">/ncache/overview</div>
+                <div className="grid2" style={{ marginBottom: 12 }}>
+                  <OverviewStat label="Cache Name" value={readOverviewValue(overview, 'CacheName')} />
+                  <OverviewStat label="Cache Topology" value={readOverviewValue(overview, 'CacheTopology')} />
+                  <OverviewStat label="Servers Count" value={readOverviewValue(overview, 'ServersCount')} />
+                  <OverviewStat label="Cache Count" value={readOverviewValue(overview, 'CacheCount')} />
+                  <OverviewStat label="Install Type" value={readOverviewValue(overview, 'InstallType')} />
+                  <OverviewStat label="Process ID" value={readOverviewValue(overview, 'ProcessId')} />
+                </div>
+                <div className="muted2" style={{ marginBottom: 8 }}>
+                  Raw response
+                </div>
                 <JsonBlock value={overview} />
               </div>
             ) : null}
@@ -295,12 +327,15 @@ function App() {
                       <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
                         {topics.map((t) => (
                           <button
-                            key={t}
-                            className={selectedTopic === t ? 'primary' : ''}
+                            key={t.TopicName}
+                            className={selectedTopic?.TopicName === t.TopicName ? 'primary' : ''}
                             onClick={() => setSelectedTopic(t)}
                             style={{ textAlign: 'left' }}
                           >
-                            {t}
+                            <div style={{ display: 'flex', justifyContent: 'space-between', gap: 10, width: '100%' }}>
+                              <span>{t.TopicName}</span>
+                              <span className="muted2">Msgs: {t.Messages}</span>
+                            </div>
                           </button>
                         ))}
                       </div>
@@ -309,7 +344,53 @@ function App() {
 
                   <div>
                     <div className="sectionTitle">
-                      Topic subscriptions {selectedTopic ? <span className="muted2">({selectedTopic})</span> : null}
+                      Selected topic {selectedTopic ? <span className="muted2">({selectedTopic.TopicName})</span> : null}
+                    </div>
+                    {selectedTopic ? (
+                      <div className="grid2" style={{ gridTemplateColumns: '1fr 1fr', gap: 10 }}>
+                        <OverviewStat label="Topic Priority" value={selectedTopic.TopicPriority} />
+                        <OverviewStat label="Topic Type" value={selectedTopic.TopicType} />
+                        <OverviewStat label="Subscribers" value={String(selectedTopic.Subscribers)} />
+                        <OverviewStat label="Subscriptions" value={String(selectedTopic.Subscriptions)} />
+                        <OverviewStat label="Publishers" value={String(selectedTopic.Publishers)} />
+                        <OverviewStat label="Messages" value={String(selectedTopic.Messages)} />
+                        <OverviewStat label="Durable Shared" value={String(selectedTopic.DurableShared)} />
+                        <OverviewStat label="Durable Exclusive" value={String(selectedTopic.DurableExclusive)} />
+                        <OverviewStat label="NonDurable" value={String(selectedTopic.NonDurable)} />
+                        <OverviewStat label="Subscription Details" value={String(selectedTopic.SubsriptionDetails.length)} />
+                      </div>
+                    ) : (
+                      <div className="muted">Select a topic.</div>
+                    )}
+                    {selectedTopic && selectedTopic.SubsriptionDetails.length > 0 ? (
+                      <div style={{ marginTop: 12 }}>
+                        <div className="sectionTitle">Subscription details from topics API</div>
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                          {selectedTopic.SubsriptionDetails.map((sub, idx) => (
+                            <div key={`${sub.SubscriptionID}-${idx}`} className="panel" style={{ padding: 12 }}>
+                              <div style={{ display: 'flex', justifyContent: 'space-between', gap: 12, marginBottom: 8 }}>
+                                <strong>{sub.Name || '(unnamed subscription)'}</strong>
+                                <span className="muted2">{sub.SubscriptionPolicy}</span>
+                              </div>
+                              <div className="muted2" style={{ marginBottom: 6 }}>
+                                Subscription ID: {sub.SubscriptionID || 'N/A'}
+                              </div>
+                              <div className="muted2" style={{ marginBottom: 6 }}>
+                                Number of clients: {sub.NumberOfClients}
+                              </div>
+                              <div className="muted2" style={{ marginBottom: 6 }}>
+                                Expiration time: {sub.ExpirationTime}
+                              </div>
+                              <div className="muted2">
+                                Connected clients: {sub.ConnectedClients.length ? sub.ConnectedClients.join(', ') : 'None'}
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    ) : null}
+                    <div className="muted2" style={{ marginTop: 10, marginBottom: 8 }}>
+                      Raw subscriptions response
                     </div>
                     <JsonBlock value={topicSubscriptions} />
                   </div>

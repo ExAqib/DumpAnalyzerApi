@@ -32,9 +32,14 @@ namespace DumpAnalyzerApi.Navigators
             return new ValueNavigator<T>(_current, _reader, fieldName);
         }
 
-        public ArrayListNavigator ArrayList(string fieldName)
+        public ListNavigator ArrayList(string fieldName)
         {
-            return new ArrayListNavigator(_current, _reader, fieldName);
+            return new ListNavigator(_current, _reader, fieldName);
+        }
+
+        public DictionaryNavigator Dictionary(string fieldName)
+        {
+            return new DictionaryNavigator(_current, _reader, fieldName);
         }
     }
 }

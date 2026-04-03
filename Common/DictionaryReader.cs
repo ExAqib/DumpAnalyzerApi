@@ -8,8 +8,16 @@ namespace DumpAnalyzerApi.Common
     {
         private readonly ILogger _logger = new ConsoleLogger("ClrDictionaryReader", true);
 
-        public ClrDictionaryReader( )
+        bool _isFrameworkDump;
+
+        public ClrDictionaryReader( bool isFrameWork)
         {
+            _isFrameworkDump = isFrameWork;
+        }
+
+        string ResolveRuntimeFieldName(string name)
+        {
+            return Util.ResolveRuntimeFieldName(name,_isFrameworkDump);
         }
 
         public IDictionary<string, ClrObject> Read(
@@ -24,7 +32,8 @@ namespace DumpAnalyzerApi.Common
                 return result;
             }
 
-            var entriesField = dictionary.Type.GetFieldByName("entries");//_entries for core dump
+            
+            var entriesField = dictionary.Type.GetFieldByName(ResolveRuntimeFieldName("entries"));//_entries for core dump
             if (entriesField == null)
             {
                 _logger.LogWarning("Dictionary has no _entries field");
@@ -77,11 +86,12 @@ namespace DumpAnalyzerApi.Common
             return result;
         }
 
-        public static string? ReadIpAddressString(ClrInstanceField keyField, IClrValue entry)
+        public string? ReadIpAddressString(ClrInstanceField keyField, IClrValue entry)
         {
             ClrObject? address = keyField?.ReadObject(entry.Address, true);
             if (address.Value.IsNull)
                 return null;
+
 
             int port = address.Value.ReadField<int>("port");
 
@@ -90,17 +100,17 @@ namespace DumpAnalyzerApi.Common
 
             ClrObject IPAddress = IPAddressField.ReadObject(address.Value.Address, false);
 
-            return IPAddress.ReadStringField("_toString") + ":" + port;
+
+            return IPAddress.ReadStringField(Util.ResolveRuntimeFieldName("_toString", _isFrameworkDump)) + ":" + port;
 
         }
 
-        internal static int GetDictionaryCount(ClrObject dictObj)
+        internal static int GetDictionaryCount(ClrObject dictObj,bool isFramework)
         {
-            var countField = dictObj.Type.GetFieldByName("_count");
+            var countField = dictObj.Type.GetFieldByName(Util.ResolveRuntimeFieldName("_count", isFramework));
             int count = countField.Read<int>(dictObj.Address, false);
 
-
-            var freeListField = dictObj.Type.GetFieldByName("_freeCount");
+            var freeListField = dictObj.Type.GetFieldByName(Util.ResolveRuntimeFieldName("_freeCount", isFramework));
             int freeList = freeListField.Read<int>(dictObj.Address, false);
 
             if (count == 0)

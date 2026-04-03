@@ -1,17 +1,23 @@
-﻿using Microsoft.Diagnostics.Runtime;
+﻿using DumpAnalyzerApi.Common;
+using Microsoft.Diagnostics.Runtime;
 
 namespace DumpAnalyzerApi.Navigators
 {
-    public class NavigatorBase
+    public abstract class NavigatorBase
     {
        
         protected ClrObject _current;
         protected ClrObjectReader _reader;
+        protected bool _isFrameworkDump;
+
 
         protected NavigatorBase(ClrObject obj, ClrObjectReader reader)
         {
             _current = obj;
             _reader = reader;
+
+            if (reader.Heap != null)
+                _isFrameworkDump = Util.IsFrameworkDump(reader.Heap.Runtime);
         }
 
         public ClrObject Current => _current;
@@ -19,7 +25,9 @@ namespace DumpAnalyzerApi.Navigators
 
         protected ClrInstanceField GetField(string name)
         {
-            if (IsNull) return null;
+            if (IsNull) 
+                return null;
+
             return _reader.GetField(_current.Type, name);
         }
 

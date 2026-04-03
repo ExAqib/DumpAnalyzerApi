@@ -1,3 +1,4 @@
+using DumpAnalyzerApi.Common;
 using DumpAnalyzerApi.DTOs;
 using DumpAnalyzerApi.Navigators;
 using DumpAnalyzerApi.Services;
@@ -20,6 +21,7 @@ public class NCacheOverviewController : ControllerBase
     [HttpGet]
     public IActionResult GetOverview([FromHeader(Name = "token")] Guid token)
     {
+        // Add message amnager last run time and connected client in over veiw section TODO
         var session = _sessionManager.GetSession(token);
         if (session == null)
         {
@@ -65,7 +67,7 @@ public class NCacheOverviewController : ControllerBase
                        .Value<int>("count")
                        .Read(),
 
-            CacheTopology =  runtimeContextNavigator
+            CacheTopology = runtimeContextNavigator
                         .Object("_cacheImpl")?
                         .Current
                         .Type?
@@ -83,9 +85,15 @@ public class NCacheOverviewController : ControllerBase
 
             InstallingViewId = "NA",
             IsStateTransfer = false,
-            CacheSize = 0
+            CacheSize = 0,
+
+            InstallType = Util.GetInstallVersion(runtime),
+            ProcessId = Util.GetProcessId(runtime)
         };
 
         return Ok(response);
     }
+
+
+    
 }

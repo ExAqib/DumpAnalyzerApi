@@ -1,13 +1,14 @@
 ﻿using Alachisoft.NCache.Common.Net;
 using Microsoft.Diagnostics.Runtime;
+using Microsoft.OpenApi.Models;
 
 namespace DumpAnalyzerApi.Navigators
 {  
-    public class ArrayListNavigator : NavigatorBase
+    public class ListNavigator : NavigatorBase
     {
         private readonly string _fieldName;
 
-        public ArrayListNavigator(ClrObject obj, ClrObjectReader reader, string fieldName)
+        public ListNavigator(ClrObject obj, ClrObjectReader reader, string fieldName)
             : base(obj, reader)
         {
             _fieldName = fieldName;
@@ -33,6 +34,65 @@ namespace DumpAnalyzerApi.Navigators
 
                 result.Add(new Alachisoft.NCache.Common.Net.Address(ip, port));
             }
+            return result;
+        }
+
+        public List<string> ReadStringList()
+        {
+            List<string> result = new List<string>();
+
+            if (IsNull)
+                return null;
+
+            var underLyingArray = Current.ReadObjectField(_fieldName);
+
+            ClrArray array = underLyingArray.AsArray();
+
+            if (array.Type.ComponentType.IsPrimitive || array.Type.ComponentType.IsString)
+            {
+               if (array.Type.ComponentType.ElementType == ClrElementType.String)
+               {
+                    for (int i = 0; i < array.Length; i++)
+                    {
+                        var val = array.GetObjectValue(i);
+
+                        if (!val.IsValid)
+                            continue;
+
+                        string? item = val.AsString();
+
+                        if(item != null)
+                            result.Add(item);                        
+                    }
+                }
+            }
+
+            return result;
+        }
+
+        public List<T> ReadList<T>() where T : unmanaged
+        {
+            List<T> result = new List<T>();
+
+            if (IsNull)
+                return result;
+
+            var underLyingArray = Current.ReadObjectField(_fieldName);
+
+            ClrArray array = underLyingArray.AsArray();
+            Console.WriteLine($"Found an array of type: {array.Type.Name}, Length: {array.Length}");
+
+            // Example 1: Reading an array of simple value types (e.g., int, string)
+            if (array.Type.ComponentType.IsPrimitive || array.Type.ComponentType.IsString)
+            {
+                // You can use ReadContents<T>() for primitive types and strings
+                if (array.Type.ComponentType.ElementType == ClrElementType.Int32)
+                {
+                    result = array.ReadValues<T>(0, array.Length).ToList<T>(); // may be length -1
+                    return result;
+                }               
+            }
+
             return result;
         }
 

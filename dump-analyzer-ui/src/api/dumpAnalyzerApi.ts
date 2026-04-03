@@ -1,9 +1,15 @@
 import { apiFetch } from './http'
 
 export type LoadDumpResponse = {
+  success?: boolean
   Success?: boolean
+  token?: string
   Token?: string
+  sessionToken?: string
+  SessionToken?: string
+  message?: string
   Message?: string
+  [key: string]: unknown
 }
 
 export type TokenResponse = {
@@ -15,13 +21,30 @@ export type CacheOverviewResponse = Record<string, unknown>
 
 export type HashMapResponse = Record<string, unknown>
 
-export type TopicsResponse = {
-  topics?: Array<{ topicName?: string; TopicName?: string }>
-  Topics?: Array<{ topicName?: string; TopicName?: string }>
+export type TopicDto = {
+  TopicName: string
+  TopicPriority: string
+  TopicType: string
+  Subscribers: number
+  Subscriptions: number
+  Publishers: number
+  Messages: number
+  DurableShared: number
+  DurableExclusive: number
+  NonDurable: number
+  SubsriptionDetails: TopicSubscriptionDetailDto[]
 }
 
 export type TopicSubscriptionsResponse = Record<string, unknown>
 export type SubscriptionResponse = Record<string, unknown>
+export type TopicSubscriptionDetailDto = {
+  SubscriptionID: string
+  NumberOfClients: number
+  Name: string
+  SubscriptionPolicy: string
+  ConnectedClients: string[]
+  ExpirationTime: number
+}
 
 export async function loadDump(path: string): Promise<{ token: string }> {
   // Prefer the explicit dump controller route (matches your current MVP).
@@ -30,8 +53,19 @@ export async function loadDump(path: string): Promise<{ token: string }> {
     body: { path },
   })
 
-  const token = (res.Token ?? '').toString()
-  if (!token) throw new Error('Token not returned from /api/dump/load')
+  const directToken = res.token ?? res.Token ?? res.sessionToken ?? res.SessionToken
+  const discoveredToken =
+    directToken ??
+    Object.entries(res).find(([k, v]) => /token/i.test(k) && typeof v === 'string' && v.trim().length > 0)?.[1]
+
+  const token = (discoveredToken ?? '').toString().trim()
+  if (!token) {
+    throw new Error(
+      `Token not returned from /api/dump/load. Response keys: ${
+        Object.keys(res).length ? Object.keys(res).join(', ') : '(empty)'
+      }`,
+    )
+  }
   return { token }
 }
 
@@ -51,12 +85,55 @@ export async function getInstalledHashMap(token: string): Promise<HashMapRespons
   return apiFetch<HashMapResponse>('/ncache/core/distribution-map/installed-hash-map', { token })
 }
 
-export async function getTopics(token: string): Promise<string[]> {
-  const res = await apiFetch<TopicsResponse>('/ncache/pub-sub/topics', { token })
-  const list = res.Topics ?? res.topics ?? []
-  return list
-    .map((t) => (t.TopicName ?? t.topicName ?? '').toString())
-    .filter((x) => x.length > 0)
+function readAny<T>(obj: Record<string, unknown>, keyPascal: string, fallback: T): T {
+  const keyCamel = keyPascal.charAt(0).toLowerCase() + keyPascal.slice(1)
+  const v = obj[keyPascal] ?? obj[keyCamel]
+  if (v === undefined || v === null) return fallback
+  return v as T
+}
+
+export async function getTopics(token: string): Promise<TopicDto[]> {
+  const res = await apiFetch<unknown>('/ncache/pub-sub/topics', { token })
+
+  if (!Array.isArray(res)) return []
+
+  return res.map((t) => {
+    const obj = t as Record<string, unknown>
+    const subscriptionDetailsRaw =
+      (readAny(obj, 'SubsriptionDetails', undefined) as unknown[] | undefined) ??
+      (readAny(obj, 'SubscriptionDetails', undefined) as unknown[] | undefined) ??
+      []
+
+    const subsriptionDetails: TopicSubscriptionDetailDto[] = Array.isArray(subscriptionDetailsRaw)
+      ? subscriptionDetailsRaw.map((s) => {
+          const subObj = s as Record<string, unknown>
+          return {
+            SubscriptionID: String(readAny(subObj, 'SubscriptionID', '') ?? ''),
+            NumberOfClients: Number(readAny(subObj, 'NumberOfClients', 0) ?? 0),
+            Name: String(readAny(subObj, 'Name', '') ?? ''),
+            SubscriptionPolicy: String(readAny(subObj, 'SubscriptionPolicy', '') ?? ''),
+            ConnectedClients: Array.isArray(readAny(subObj, 'ConnectedClients', []))
+              ? (readAny(subObj, 'ConnectedClients', []) as unknown[]).map((c) => String(c))
+              : [],
+            ExpirationTime: Number(readAny(subObj, 'ExpirationTime', 0) ?? 0),
+          }
+        })
+      : []
+
+    return {
+      TopicName: String(readAny(obj, 'TopicName', '') ?? ''),
+      TopicPriority: String(readAny(obj, 'TopicPriority', '') ?? ''),
+      TopicType: String(readAny(obj, 'TopicType', '') ?? ''),
+      Subscribers: Number(readAny(obj, 'Subscribers', 0) ?? 0),
+      Subscriptions: Number(readAny(obj, 'Subscriptions', 0) ?? 0),
+      Publishers: Number(readAny(obj, 'Publishers', 0) ?? 0),
+      Messages: Number(readAny(obj, 'Messages', 0) ?? 0),
+      DurableShared: Number(readAny(obj, 'DurableShared', 0) ?? 0),
+      DurableExclusive: Number(readAny(obj, 'DurableExclusive', 0) ?? 0),
+      NonDurable: Number(readAny(obj, 'NonDurable', 0) ?? 0),
+      SubsriptionDetails: subsriptionDetails,
+    }
+  })
 }
 
 export async function getTopicSubscriptions(token: string, topicName: string): Promise<TopicSubscriptionsResponse> {

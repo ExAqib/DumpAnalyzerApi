@@ -1,3 +1,5 @@
+using Alachisoft.NCache.Runtime.Caching;
+
 namespace DumpAnalyzerApi.DTOs;
 
 public class TopicsResponse
@@ -12,11 +14,11 @@ public class TopicDto
     public string TopicType { get; set; } = string.Empty;
     public int Subscribers { get; set; }
     public int Subscriptions { get; set; }
-    public int Publishers { get; set; }
     public int Messages { get; set; }
-    public bool DurableShared { get; set; }
-    public bool DurableExclusive { get; set; }
-    public bool NonDurable { get; set; }
+    public int DurableShared { get; set; }
+    public int DurableExclusive { get; set; }
+    public int NonDurable { get; set; }
+    public IList<TopicSubscriptionDto> SubsriptionDetails { get; set; } = new List<TopicSubscriptionDto>();
 }
 
 public class TopicSubscriptionsResponse
@@ -28,9 +30,10 @@ public class TopicSubscriptionDto
 {
     public string SubscriptionID { get; set; } = string.Empty;
     public int NumberOfClients { get; set; }
-    public bool DurableShared { get; set; }
-    public bool DurableExclusive { get; set; }
-    public bool NonDurable { get; set; }
+    public string Name { get;  set; }
+    public string SubscriptionPolicy { get;  set; }
+    public IList<string> ConnectedClients { get; set; }
+    public long ExpirationTime { get; internal set; }
 }
 
 public class SubscriptionResponse
@@ -54,4 +57,13 @@ public class MessageDto
     public string Id { get; set; } = string.Empty;
     public DateTime? CreationTime { get; set; }
     public DateTime? AssignmentTime { get; set; }
+}
+
+public class ClientSubscriptionManagerDto
+{
+    public string ClientID { get; set; } = string.Empty;
+    public DateTime? LastActivityTime { get; set; }
+    public DateTime? UpdateTime { get; set; }
+    public DateTime? PollTime { get; set; }
+    public int MessageCount { get; set; }
 }

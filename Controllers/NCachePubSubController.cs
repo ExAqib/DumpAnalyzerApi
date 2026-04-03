@@ -26,21 +26,9 @@ public class NCachePubSubController : ControllerBase
         var heap = runtime.Heap;
 
         var clrObj = heap.EnumerateObjects().Where(obj => obj.Type.Name.Equals("Alachisoft.NCache.Caching.Messaging.TopicManager")).FirstOrDefault();
-        var topicNames = TopicManager.Analyze(clrObj, heap);
+        List<TopicDto>? topicResponse = TopicManager.Analyze(clrObj, heap);
 
-        var Topics = new List<TopicDto>();
-
-        foreach (string name in (ICollection<string>) topicNames)
-        {
-            Topics.Add(new TopicDto() { TopicName = name});
-        }
-
-
-
-        return Ok(new TopicsResponse
-        {
-            Topics = Topics
-        });
+        return Ok(topicResponse);
     }
 
     [HttpGet("topics/{topicName}/subscriptions")]

@@ -8,6 +8,9 @@ namespace DumpAnalyzerApi.Navigators
         private readonly ConcurrentDictionary<(ClrType, string), ClrInstanceField> _fieldCache
            = new();
 
+        public ClrHeap? Heap { get; set; }
+
+
         public ClrInstanceField GetField(ClrType type, string name)
         {
             return _fieldCache.GetOrAdd((type, name), key =>

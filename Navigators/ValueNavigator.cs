@@ -22,7 +22,7 @@ namespace DumpAnalyzerApi.Navigators
             var field = GetField(_fieldName);
 
             if (field == null) 
-                return default;
+                throw new Exception($"Field {_fieldName} not found in type {_current.Type}");
 
             return (T)field.Read<T>(_current, interior: false);
         }
