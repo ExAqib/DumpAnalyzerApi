@@ -27,7 +27,7 @@ namespace DumpAnalyzerApi.Navigators
 
                 var ip = reader
                     .Object("ip_addr")
-                    .String("_toString")
+                    .String(_isFrameworkDump ? "_toString" : "m_ToString")
                     .Read();
 
                 item.GetType().GetField("port");

@@ -52,8 +52,8 @@ internal partial class TopicManager
 
             topicDto.Subscribers = count;
 
-            count = topicReader.From(topicObj).Object("_subscriptions").Value<int>("_count").Read();
-            freeList = topicReader.From(topicObj).Object("_subscriptions").Value<int>("_freeList").Read();
+            count = topicReader.From(topicObj).Object("_subscriptions").Value<int>(Util.ResolveRuntimeFieldName("_count",isFrameworkDump)).Read();
+            freeList = topicReader.From(topicObj).Object("_subscriptions").Value<int>(Util.ResolveRuntimeFieldName("_freeList", isFrameworkDump)).Read();
 
             if (count > 0)
                 count = count - freeList;

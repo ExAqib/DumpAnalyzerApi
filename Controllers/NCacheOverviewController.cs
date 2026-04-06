@@ -93,6 +93,7 @@ public class NCacheOverviewController : ControllerBase
             InstallType = Util.GetInstallVersion(runtime),
             ProcessId = Util.GetProcessId(runtime),
             MessageManagerLastTime = new ClrObjectReader().
+                        WithHeap(runtime.Heap).
                         From(messageManagerClr)
                         .DateTimeNavigator("_expirationTimestamp")
                         .ReadDateTime()

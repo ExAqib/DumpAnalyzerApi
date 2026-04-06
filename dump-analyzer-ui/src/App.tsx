@@ -23,6 +23,7 @@ function App() {
   const [error, setError] = useState<string | null>(null)
 
   const [tab, setTab] = useState<'overview' | 'core' | 'pubsub'>('overview')
+  const [showRawOverview, setShowRawOverview] = useState(false)
 
   const [overview, setOverviewState] = useState<OverviewModel>(null)
   const [ownershipMap, setOwnershipMapState] = useState<unknown>(null)
@@ -210,6 +211,36 @@ function App() {
     )
   }
 
+  const Icons = {
+    server: <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="2" y="2" width="20" height="8" rx="2" ry="2"></rect><rect x="2" y="14" width="20" height="8" rx="2" ry="2"></rect><line x1="6" y1="6" x2="6.01" y2="6"></line><line x1="6" y1="18" x2="6.01" y2="18"></line></svg>,
+    topology: <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polygon points="12 2 2 7 12 12 22 7 12 2"></polygon><polyline points="2 17 12 22 22 17"></polyline><polyline points="2 12 12 17 22 12"></polyline></svg>,
+    database: <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><ellipse cx="12" cy="5" rx="9" ry="3"></ellipse><path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3"></path><path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5"></path></svg>,
+    activity: <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"></polyline></svg>,
+    cpu: <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="4" y="4" width="16" height="16" rx="2" ry="2"></rect><rect x="9" y="9" width="6" height="6"></rect><line x1="9" y1="1" x2="9" y2="4"></line><line x1="15" y1="1" x2="15" y2="4"></line><line x1="9" y1="20" x2="9" y2="23"></line><line x1="15" y1="20" x2="15" y2="23"></line><line x1="20" y1="9" x2="23" y2="9"></line><line x1="20" y1="14" x2="23" y2="14"></line><line x1="1" y1="9" x2="4" y2="9"></line><line x1="1" y1="14" x2="4" y2="14"></line></svg>,
+    clock: <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>,
+    chevron: <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="9 18 15 12 9 6"></polyline></svg>,
+    code: <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="16 18 22 12 16 6"></polyline><polyline points="8 6 2 12 8 18"></polyline></svg>,
+    view: <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg>,
+    queue: <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="8" y1="6" x2="21" y2="6"></line><line x1="8" y1="12" x2="21" y2="12"></line><line x1="8" y1="18" x2="21" y2="18"></line><line x1="3" y1="6" x2="3.01" y2="6"></line><line x1="3" y1="12" x2="3.01" y2="12"></line><line x1="3" y1="18" x2="3.01" y2="18"></line></svg>,
+    transfer: <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="16 3 21 3 21 8"></polyline><line x1="4" y1="20" x2="21" y2="3"></line><polyline points="21 16 21 21 16 21"></polyline><line x1="15" y1="15" x2="21" y2="21"></line><line x1="4" y1="4" x2="9" y2="9"></line></svg>,
+    size: <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="22" y1="12" x2="2" y2="12"></line><path d="M5.45 5.11L2 12v6a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-6l-3.45-6.89A2 2 0 0 0 16.76 4H7.24a2 2 0 0 0-1.79 1.11z"></path><line x1="6" y1="16" x2="6.01" y2="16"></line><line x1="10" y1="16" x2="10.01" y2="16"></line></svg>,
+    network: <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="16" y="16" width="6" height="6" rx="1"></rect><rect x="2" y="16" width="6" height="6" rx="1"></rect><rect x="9" y="2" width="6" height="6" rx="1"></rect><path d="M5 16v-3a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2v3"></path><line x1="12" y1="8" x2="12" y2="12"></line></svg>
+  }
+
+  function EnterpriseStatistic({ label, value, icon, color }: { label: string; value: string; icon: React.ReactNode, color: string }) {
+    return (
+      <div className="metric-card">
+        <div className="metric-header">
+          <div className={`metric-icon ${color}`}>
+            {icon}
+          </div>
+          <div className="metric-label">{label}</div>
+        </div>
+        <div className="metric-value">{value}</div>
+      </div>
+    )
+  }
+
   function formatDisplayDate(value: string | null | undefined): string {
     if (!value) return 'N/A'
     const dt = new Date(value)
@@ -227,6 +258,15 @@ function App() {
     if (hours === 0) hours = 12
 
     return `${day}-${month}-${year} ${String(hours).padStart(2, '0')}:${minutes}:${seconds} ${ampm}`
+  }
+
+  function getServersList(obj: OverviewModel): string[] {
+    if (!obj) return []
+    const val = obj['Servers'] ?? obj['servers']
+    if (Array.isArray(val)) {
+      return val.map((x) => String(x))
+    }
+    return []
   }
 
   return (
@@ -295,21 +335,144 @@ function App() {
             </div>
 
             {tab === 'overview' ? (
-              <div className="panel">
-                <div className="sectionTitle">/ncache/overview</div>
-                <div className="grid2" style={{ marginBottom: 12 }}>
-                  <OverviewStat label="Cache Name" value={readOverviewValue(overview, 'CacheName')} />
-                  <OverviewStat label="Cache Topology" value={readOverviewValue(overview, 'CacheTopology')} />
-                  <OverviewStat label="Servers Count" value={readOverviewValue(overview, 'ServersCount')} />
-                  <OverviewStat label="Cache Count" value={readOverviewValue(overview, 'CacheCount')} />
-                  <OverviewStat label="Install Type" value={readOverviewValue(overview, 'InstallType')} />
-                  <OverviewStat label="Process ID" value={readOverviewValue(overview, 'ProcessId')} />
-                  <OverviewStat label="Message Manager Last Time" value={formatDisplayDate(readOverviewValue(overview, 'MessageManagerLastTime'))} />
+              <div className="enterprise-panel">
+                <div className="breadcrumb">
+                  <div className="breadcrumb-item">Dump Analyzer</div>
+                  <div className="breadcrumb-separator">{Icons.chevron}</div>
+                  <div className="breadcrumb-item" title={dumpPath}>
+                    {dumpPath ? dumpPath.split(/[\/\\]/).pop() || 'Dump' : 'Dump'}
+                  </div>
+                  <div className="breadcrumb-separator">{Icons.chevron}</div>
+                  <div className="breadcrumb-item active">Overview</div>
                 </div>
-                <div className="muted2" style={{ marginBottom: 8 }}>
-                  Raw response
+
+                <div className="overview-header">
+                  <div className="overview-title-group">
+                    <h2 className="overview-title">{readOverviewValue(overview, 'CacheName')}</h2>
+                    <div className="overview-subtitle">
+                      Process ID: {readOverviewValue(overview, 'ProcessId')} &bull; Status: Active
+                    </div>
+                  </div>
+                  <div className="status-badge">
+                    <div className="status-badge-dot"></div>
+                    Analyzed
+                  </div>
                 </div>
-                <JsonBlock value={overview} />
+
+                <div className="metrics-grid">
+                  <EnterpriseStatistic 
+                    label="Topology" 
+                    value={readOverviewValue(overview, 'CacheTopology')} 
+                    icon={Icons.topology}
+                    color="purple"
+                  />
+                  <EnterpriseStatistic 
+                    label="Servers" 
+                    value={readOverviewValue(overview, 'ServersCount')} 
+                    icon={Icons.server}
+                    color="blue"
+                  />
+                  <EnterpriseStatistic 
+                    label="Cache Count" 
+                    value={readOverviewValue(overview, 'CacheCount')} 
+                    icon={Icons.database}
+                    color="orange"
+                  />
+                  <EnterpriseStatistic 
+                    label="Current View ID" 
+                    value={readOverviewValue(overview, 'CurrentViewId')} 
+                    icon={Icons.view}
+                    color="green"
+                  />
+                  {/*<EnterpriseStatistic */}
+                  {/*  label="Installing View ID" */}
+                  {/*  value={readOverviewValue(overview, 'InstallingViewId')} */}
+                  {/*  icon={Icons.view}*/}
+                  {/*  color="blue"*/}
+                  {/*/>*/}
+                  {/*<EnterpriseStatistic */}
+                  {/*  label="State Transfer" */}
+                  {/*  value={readOverviewValue(overview, 'IsStateTransfer')} */}
+                  {/*  icon={Icons.transfer}*/}
+                  {/*  color="purple"*/}
+                  {/*/>*/}
+                  {/*<EnterpriseStatistic */}
+                  {/*  label="Cache Size" */}
+                  {/*  value={readOverviewValue(overview, 'CacheSize')} */}
+                  {/*  icon={Icons.size}*/}
+                  {/*  color="orange"*/}
+                  {/*/>*/}
+                  {/*<EnterpriseStatistic */}
+                  {/*  label="Rep/Mirror Queue" */}
+                  {/*  value={readOverviewValue(overview, 'ReplicationQueueMirrorQueue')} */}
+                  {/*  icon={Icons.queue}*/}
+                  {/*  color="blue"*/}
+                  {/*/>*/}
+                  <EnterpriseStatistic 
+                    label="Install Type" 
+                    value={readOverviewValue(overview, 'InstallType')} 
+                    icon={Icons.cpu}
+                    color="green"
+                  />
+                  {/*<EnterpriseStatistic */}
+                  {/*  label="Message Manager" */}
+                  {/*  value={readOverviewValue(overview, 'MessageManagerLastTime') === 'N/A' || !overview?.MessageManagerLastTime ? 'Unknown' : 'Active'} */}
+                  {/*  icon={Icons.activity}*/}
+                  {/*  color="blue"*/}
+                  {/*/>*/}
+                  <EnterpriseStatistic 
+                    label="Message Manager Last Time" 
+                    value={formatDisplayDate(readOverviewValue(overview, 'MessageManagerLastTime'))} 
+                    icon={Icons.clock}
+                    color="purple"
+                  />
+                </div>
+
+                <div className="section-divider">
+                  <span className="section-divider-text">IP Addresses</span>
+                </div>
+
+                <div className="servers-container">
+                  <div className="servers-header">
+                    {Icons.network} Server Nodes
+                  </div>
+                  <div className="servers-list">
+                    {getServersList(overview).length > 0 ? (
+                      getServersList(overview).map((ip, idx) => (
+                        <div key={idx} className="server-pill">
+                          <span className="status-badge-dot" style={{ backgroundColor: '#29d3ff', boxShadow: '0 0 8px #29d3ff' }}></span>
+                          {ip}
+                        </div>
+                      ))
+                    ) : (
+                      <div className="muted2">No servers found</div>
+                    )}
+                  </div>
+                </div>
+
+                <div className="section-divider">
+                  <span className="section-divider-text">Technical Details</span>
+                </div>
+
+                <div 
+                  className="raw-data-toggle" 
+                  onClick={() => setShowRawOverview(!showRawOverview)}
+                >
+                  {Icons.code}
+                  {showRawOverview ? 'Hide Raw Response' : 'Show Raw Response'}
+                </div>
+                
+                {showRawOverview && (
+                  <div className="raw-data-container">
+                    <div className="raw-data-header">
+                      <span>/ncache/overview</span>
+                      <span>JSON</span>
+                    </div>
+                    <div className="raw-data-content">
+                      <JsonBlock value={overview} />
+                    </div>
+                  </div>
+                )}
               </div>
             ) : null}
 

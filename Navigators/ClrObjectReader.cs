@@ -10,6 +10,12 @@ namespace DumpAnalyzerApi.Navigators
 
         public ClrHeap? Heap { get; set; }
 
+        public ClrObjectReader WithHeap(ClrHeap heap)
+        {
+            Heap = heap;
+            return this;
+        }
+
 
         public ClrInstanceField GetField(ClrType type, string name)
         {
