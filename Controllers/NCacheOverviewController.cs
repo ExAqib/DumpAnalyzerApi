@@ -96,8 +96,9 @@ public class NCacheOverviewController : ControllerBase
                         WithHeap(runtime.Heap).
                         From(messageManagerClr)
                         .DateTimeNavigator("_expirationTimestamp")
-                        .ReadDateTime()
+                        .ReadDateTime(),
 
+            CpuUtilization = runtime?.ThreadPool?.CpuUtilization ?? -1
 
         };
 

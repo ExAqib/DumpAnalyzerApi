@@ -26,6 +26,13 @@ function App() {
     const [showRawOverview, setShowRawOverview] = useState(false)
     const [pubSubView, setPubSubView] = useState<'topics' | 'clients' | 'lookup'>('topics')
 
+    const [analysisNotes, setAnalysisNotes] = useState(() => localStorage.getItem('dumpNotes') || '')
+    const [isNotesOpen, setIsNotesOpen] = useState(false)
+
+    useEffect(() => {
+      localStorage.setItem('dumpNotes', analysisNotes)
+    }, [analysisNotes])
+
     const [overview, setOverviewState] = useState<OverviewModel>(null)
     const [ownershipMap, setOwnershipMapState] = useState<unknown>(null)
     const [previousHashMap, setPreviousHashMapState] = useState<unknown>(null)
@@ -225,8 +232,9 @@ function App() {
         queue: <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="8" y1="6" x2="21" y2="6"></line><line x1="8" y1="12" x2="21" y2="12"></line><line x1="8" y1="18" x2="21" y2="18"></line><line x1="3" y1="6" x2="3.01" y2="6"></line><line x1="3" y1="12" x2="3.01" y2="12"></line><line x1="3" y1="18" x2="3.01" y2="18"></line></svg>,
         transfer: <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="16 3 21 3 21 8"></polyline><line x1="4" y1="20" x2="21" y2="3"></line><polyline points="21 16 21 21 16 21"></polyline><line x1="15" y1="15" x2="21" y2="21"></line><line x1="4" y1="4" x2="9" y2="9"></line></svg>,
         size: <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="22" y1="12" x2="2" y2="12"></line><path d="M5.45 5.11L2 12v6a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-6l-3.45-6.89A2 2 0 0 0 16.76 4H7.24a2 2 0 0 0-1.79 1.11z"></path><line x1="6" y1="16" x2="6.01" y2="16"></line><line x1="10" y1="16" x2="10.01" y2="16"></line></svg>,
-        network: <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="16" y="16" width="6" height="6" rx="1"></rect><rect x="2" y="16" width="6" height="6" rx="1"></rect><rect x="9" y="2" width="6" height="6" rx="1"></rect><path d="M5 16v-3a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2v3"></path><line x1="12" y1="8" x2="12" y2="12"></line></svg>
-    }
+        network: <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="16" y="16" width="6" height="6" rx="1"></rect><rect x="2" y="16" width="6" height="6" rx="1"></rect><rect x="9" y="2" width="6" height="6" rx="1"></rect><path d="M5 16v-3a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2v3"></path><line x1="12" y1="8" x2="12" y2="12"></line></svg>,
+        notebook: <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"></path><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"></path></svg>,
+     }
 
     //function EnterpriseStatistic({ label, value, icon, color }: { label: string; value: string; icon: React.ReactNode, color: string }) {
     //  return (
@@ -413,7 +421,14 @@ function App() {
                                         color="orange"
                                     />
                                     <EnterpriseStatistic
-                                        label="Current View ID"
+                                        label="CPU Utilization"
+                                        value={`${readOverviewValue(overview, 'CpuUtilization')} %`}
+                                        icon={Icons.cpu}
+                                        color="yellow"
+                                        />
+
+                                    <EnterpriseStatistic
+                                        label="View ID"
                                         value={readOverviewValue(overview, 'CurrentViewId')}
                                         icon={Icons.view}
                                         color="green"
@@ -455,7 +470,7 @@ function App() {
                                     {/*  color="blue"*/}
                                     {/*/>*/}
                                     <EnterpriseStatistic
-                                        label="Last Event/Messages Assignment Time"
+                                        label="Event/Messages Assignment Time"
                                         value={formatDisplayDate(readOverviewValue(overview, 'MessageManagerLastTime'))}
                                         icon={Icons.clock}
                                         color="purple"
@@ -708,6 +723,7 @@ function App() {
                                         <div className="metric-icon blue" style={{ margin: '0 auto 20px', width: 48, height: 48 }}>
                                             {Icons.code}
                                         </div>
+                                        <div className="overview-title" style={{ fontSize: 30, marginBottom: 8 }}>Currently this feature is Under Development</div>
                                         <div className="overview-title" style={{ fontSize: 20, marginBottom: 8 }}>Find Subscription</div>
                                         <div className="muted" style={{ marginBottom: 24 }}>Enter a Subscription ID to retrieve specific configuration and payload history.</div>
 
@@ -742,6 +758,29 @@ function App() {
                             </div>
                         ) : null}
                     </>
+                )}
+
+                {token && (
+                  <div className={`notes-panel ${isNotesOpen ? 'open' : ''}`}>
+                    <div className="notes-header" onClick={() => setIsNotesOpen(!isNotesOpen)}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                        {Icons.notebook}
+                        <span>Analysis Context</span>
+                      </div>
+                      <div style={{ transform: isNotesOpen ? 'rotate(180deg)' : 'none', transition: 'transform 0.3s' }}>
+                        ▼
+                      </div>
+                    </div>
+                    <div className="notes-content">
+                      <textarea
+                        placeholder="Type your context, analysis, or important points here...&#10;&#10;Notes are saved locally."
+                        value={analysisNotes}
+                        onChange={(e) => setAnalysisNotes(e.target.value)}
+                        className="notes-textarea"
+                        tabIndex={isNotesOpen ? 0 : -1}
+                      />
+                    </div>
+                  </div>
                 )}
             </div>
         </div>
