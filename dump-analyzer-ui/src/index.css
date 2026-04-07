@@ -524,3 +524,134 @@ pre {
   border-color: rgba(41, 211, 255, 0.4);
   transform: translateY(-1px);
 }
+
+/* Pub/Sub Sub-Navigation & Layouts */
+.sub-tabs {
+  display: flex;
+  gap: 16px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  margin-bottom: 24px;
+}
+
+.sub-tab {
+  padding: 10px 4px;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--muted);
+  cursor: pointer;
+  position: relative;
+  transition: color 0.2s;
+}
+
+.sub-tab:hover {
+  color: var(--text);
+}
+
+.sub-tab.active {
+  color: var(--text);
+}
+
+.sub-tab.active::after {
+  content: '';
+  position: absolute;
+  bottom: -1px;
+  left: 0;
+  right: 0;
+  height: 2px;
+  background: var(--accent);
+  box-shadow: 0 0 10px var(--accent);
+}
+
+.split-pane {
+  display: grid;
+  grid-template-columns: 280px 1fr;
+  gap: 24px;
+}
+
+@media (max-width: 920px) {
+  .split-pane {
+    grid-template-columns: 1fr;
+  }
+}
+
+.pane-left {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  max-height: 600px;
+  overflow-y: auto;
+  padding-right: 8px;
+}
+
+.pane-right {
+  display: flex;
+  flex-direction: column;
+}
+
+.topic-card-btn {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  width: 100%;
+  padding: 14px 16px;
+  background: rgba(15, 26, 47, 0.4);
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  border-radius: 12px;
+  color: var(--muted);
+  font-size: 13px;
+  font-weight: 500;
+  text-align: left;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.topic-card-btn:hover {
+  background: rgba(255, 255, 255, 0.05);
+  border-color: rgba(255, 255, 255, 0.1);
+  color: var(--text);
+}
+
+.topic-card-btn.active {
+  background: rgba(124, 92, 255, 0.15);
+  border-color: rgba(124, 92, 255, 0.4);
+  color: var(--text);
+}
+
+.topic-msg-count {
+  font-size: 11px;
+  background: rgba(0, 0, 0, 0.4);
+  padding: 4px 8px;
+  border-radius: 999px;
+  color: var(--accent2);
+}
+
+.subscription-card {
+  background: rgba(15, 26, 47, 0.4);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 12px;
+  padding: 16px;
+  margin-bottom: 12px;
+}
+
+.search-dashboard {
+  max-width: 500px;
+  margin: 40px auto;
+  text-align: center;
+}
+
+.search-input-wrapper {
+  display: flex;
+  margin-top: 16px;
+  gap: 8px;
+}
+
+.search-input-wrapper input {
+  font-size: 15px;
+  padding: 14px 16px;
+}
+
+.client-managers-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+  gap: 16px;
+}

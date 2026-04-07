@@ -45,17 +45,17 @@ internal partial class TopicManager
             topicDto.TopicPriority = ((Alachisoft.NCache.Runtime.Messaging.TopicPriority)priorityValue).ToString();
             
             var count = topicReader.From(topicObj).Object("_subscribers").Value<int>("count").Read();
-            var freeList = topicReader.From(topicObj).Object("_subscribers").Value<int>("freeList").Read();
+            var freeList = topicReader.From(topicObj).Object("_subscribers").Value<int>("freeCount").Read();
 
-            if (count > 0)
+            if (count > 0 && freeList > 0)
                 count = count - freeList;
 
             topicDto.Subscribers = count;
 
             count = topicReader.From(topicObj).Object("_subscriptions").Value<int>(Util.ResolveRuntimeFieldName("_count",isFrameworkDump)).Read();
-            freeList = topicReader.From(topicObj).Object("_subscriptions").Value<int>(Util.ResolveRuntimeFieldName("_freeList", isFrameworkDump)).Read();
+            freeList = topicReader.From(topicObj).Object("_subscriptions").Value<int>(Util.ResolveRuntimeFieldName("_freeCount", isFrameworkDump)).Read();
 
-            if (count > 0)
+            if (count > 0 && freeList > 0)
                 count = count - freeList;
 
             topicDto.Subscriptions = count;

@@ -19,7 +19,7 @@ namespace DumpAnalyzerApi.Navigators
             if (IsNull) return null;
 
             var field = GetField(_fieldName);
-            return field?.ReadString(_current, interior: false);
+            return field.ReadString(_current, interior: false);
         }
 
         // Optional: read as object for further chaining (rare)

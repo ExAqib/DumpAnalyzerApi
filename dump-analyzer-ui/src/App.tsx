@@ -24,6 +24,7 @@ function App() {
 
   const [tab, setTab] = useState<'overview' | 'core' | 'pubsub'>('overview')
   const [showRawOverview, setShowRawOverview] = useState(false)
+  const [pubSubView, setPubSubView] = useState<'topics' | 'clients' | 'lookup'>('topics')
 
   const [overview, setOverviewState] = useState<OverviewModel>(null)
   const [ownershipMap, setOwnershipMapState] = useState<unknown>(null)
@@ -421,7 +422,7 @@ function App() {
                   {/*  color="blue"*/}
                   {/*/>*/}
                   <EnterpriseStatistic 
-                    label="Message Manager Last Time" 
+                    label="Last Event/Messages Assignment Time" 
                     value={formatDisplayDate(readOverviewValue(overview, 'MessageManagerLastTime'))} 
                     icon={Icons.clock}
                     color="purple"
@@ -508,146 +509,182 @@ function App() {
             ) : null}
 
             {tab === 'pubsub' ? (
-              <div className="panel">
-                <div className="fieldRow" style={{ justifyContent: 'space-between', marginBottom: 10 }}>
-                  <div>
-                    <div className="sectionTitle" style={{ marginBottom: 4 }}>
-                      /ncache/pub-sub/*
-                    </div>
-                    <div className="muted2">
-                      Topics are real today (found via TopicManager in dump). Subscription endpoints are placeholders.
+              <div className="enterprise-panel">
+                <div className="overview-header" style={{ marginBottom: 16, paddingBottom: 16 }}>
+                  <div className="overview-title-group">
+                    <h2 className="overview-title">Pub/Sub Monitoring</h2>
+                    <div className="overview-subtitle">
+                      Analyze active topics, inspect subscriptions, and monitor top-level clients
                     </div>
                   </div>
-                  <button disabled={busy} onClick={refreshTopics}>
-                    Refresh topics
-                  </button>
                 </div>
 
-                <div className="grid2">
-                  <div>
-                    <div className="sectionTitle">Topics</div>
-                    {topics.length === 0 ? (
-                      <div className="muted">No topics returned yet.</div>
-                    ) : (
-                      <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-                        {topics.map((t) => (
-                          <button
+                <div className="sub-tabs">
+                  <div className={`sub-tab ${pubSubView === 'topics' ? 'active' : ''}`} onClick={() => setPubSubView('topics')}>
+                    Topics Explorer
+                  </div>
+                  <div className={`sub-tab ${pubSubView === 'clients' ? 'active' : ''}`} onClick={() => setPubSubView('clients')}>
+                    Client Managers
+                  </div>
+                  <div className={`sub-tab ${pubSubView === 'lookup' ? 'active' : ''}`} onClick={() => setPubSubView('lookup')}>
+                    Deep Lookup
+                  </div>
+                  <div style={{ marginLeft: 'auto', alignSelf: 'center' }}>
+                    <button disabled={busy} onClick={() => {
+                        if (pubSubView === 'topics') refreshTopics()
+                        if (pubSubView === 'clients') refreshClientSubscriptionManagers()
+                    }}>
+                      Refresh Data
+                    </button>
+                  </div>
+                </div>
+
+                {pubSubView === 'topics' && (
+                  <div className="split-pane">
+                    <div className="pane-left">
+                      {topics.length === 0 ? (
+                        <div className="muted">No topics returned yet.</div>
+                      ) : (
+                        topics.map((t) => (
+                          <div
                             key={t.TopicName}
-                            className={selectedTopic?.TopicName === t.TopicName ? 'primary' : ''}
+                            className={`topic-card-btn ${selectedTopic?.TopicName === t.TopicName ? 'active' : ''}`}
                             onClick={() => setSelectedTopic(t)}
-                            style={{ textAlign: 'left' }}
                           >
-                            <div style={{ display: 'flex', justifyContent: 'space-between', gap: 10, width: '100%' }}>
-                              <span>{t.TopicName}</span>
-                              <span className="muted2">Msgs: {t.Messages}</span>
+                            <span>{t.TopicName}</span>
+                            <span className="topic-msg-count">{t.Messages}</span>
+                          </div>
+                        ))
+                      )}
+                    </div>
+                    
+                    <div className="pane-right">
+                      {selectedTopic ? (
+                        <>
+                          <div className="sectionTitle" style={{ marginBottom: 16, fontSize: 16 }}>
+                            {selectedTopic.TopicName} Metrics
+                          </div>
+                          <div className="metrics-grid" style={{ marginBottom: 20 }}>
+                            <EnterpriseStatistic label="Priority" value={selectedTopic.TopicPriority} icon={Icons.activity} color="blue" />
+                            <EnterpriseStatistic label="Type" value={selectedTopic.TopicType} icon={Icons.topology} color="purple" />
+                            <EnterpriseStatistic label="Subscribers" value={String(selectedTopic.Subscribers)} icon={Icons.network} color="orange" />
+                            <EnterpriseStatistic label="Messages" value={String(selectedTopic.Messages)} icon={Icons.database} color="blue" />
+                            <EnterpriseStatistic label="Durable Shared Subscriptions" value={String(selectedTopic.DurableShared)} icon={Icons.queue} color="purple" />
+                          </div>
+
+                          <div className="section-divider" style={{ margin: '16px 0' }}>
+                            <span className="section-divider-text">Subscriptions ({selectedTopic.SubsriptionDetails.length})</span>
+                          </div>
+
+                          {selectedTopic.SubsriptionDetails.length > 0 ? (
+                             selectedTopic.SubsriptionDetails.map((sub, idx) => (
+                               <div key={`${sub.SubscriptionID}-${idx}`} className="subscription-card">
+                                 <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 8 }}>
+                                   <strong style={{ color: 'var(--text)', fontSize: 16 }}>{sub.Name || '(unnamed)'}</strong>
+                                   <div className="status-badge" style={{ padding: '4px 10px' }}>
+                                     <div className="status-badge-dot"></div>
+                                     {sub.SubscriptionPolicy}
+                                   </div>
+                                 </div>
+                                 <div className="muted2" style={{ fontSize: 13, marginBottom: 4 }}><strong>ID:</strong> {sub.SubscriptionID || 'N/A'}</div>
+                                 <div className="muted2" style={{ fontSize: 13, marginBottom: 4 }}><strong>Clients:</strong> {sub.NumberOfClients}</div>
+                                 <div className="muted2" style={{ fontSize: 13, marginBottom: 12 }}><strong>Expires:</strong> {sub.ExpirationTime}</div>
+                                 {sub.ConnectedClients && sub.ConnectedClients.length > 0 && (
+                                   <div className="servers-list" style={{ padding: 0 }}>
+                                     {sub.ConnectedClients.map((c, i) => (
+                                       <div key={i} className="server-pill" style={{ padding: '4px 8px', fontSize: 11 }}>{c}</div>
+                                     ))}
+                                   </div>
+                                 )}
+                               </div>
+                             ))
+                          ) : (
+                            <div className="muted2">No subscriptions for this topic.</div>
+                          )}
+                          
+                          <details style={{ marginTop: 24, cursor: 'pointer' }}>
+                            <summary className="muted" style={{ padding: '8px 0', borderTop: '1px solid var(--border)' }}>Show Raw JSON</summary>
+                            <div className="raw-data-container" style={{ marginTop: 12 }}>
+                               <JsonBlock value={topicSubscriptions} />
                             </div>
-                          </button>
-                        ))}
-                      </div>
-                    )}
+                          </details>
+                        </>
+                      ) : (
+                        <div className="muted">Please select a topic to view details.</div>
+                      )}
+                    </div>
                   </div>
+                )}
 
+                {pubSubView === 'clients' && (
                   <div>
-                    <div className="sectionTitle">
-                      Selected topic {selectedTopic ? <span className="muted2">({selectedTopic.TopicName})</span> : null}
-                    </div>
-                    {selectedTopic ? (
-                      <div className="grid2" style={{ gridTemplateColumns: '1fr 1fr', gap: 10 }}>
-                        <OverviewStat label="Topic Priority" value={selectedTopic.TopicPriority} />
-                        <OverviewStat label="Topic Type" value={selectedTopic.TopicType} />
-                        <OverviewStat label="Subscribers" value={String(selectedTopic.Subscribers)} />
-                        <OverviewStat label="Subscriptions" value={String(selectedTopic.Subscriptions)} />
-                        <OverviewStat label="Publishers" value={String(selectedTopic.Publishers)} />
-                        <OverviewStat label="Messages" value={String(selectedTopic.Messages)} />
-                        <OverviewStat label="Durable Shared" value={String(selectedTopic.DurableShared)} />
-                        <OverviewStat label="Durable Exclusive" value={String(selectedTopic.DurableExclusive)} />
-                        <OverviewStat label="NonDurable" value={String(selectedTopic.NonDurable)} />
-                        <OverviewStat label="Subscription Details" value={String(selectedTopic.SubsriptionDetails.length)} />
-                      </div>
-                    ) : (
-                      <div className="muted">Select a topic.</div>
-                    )}
-                    {selectedTopic && selectedTopic.SubsriptionDetails.length > 0 ? (
-                      <div style={{ marginTop: 12 }}>
-                        <div className="sectionTitle">Subscription details from topics API</div>
-                        <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-                          {selectedTopic.SubsriptionDetails.map((sub, idx) => (
-                            <div key={`${sub.SubscriptionID}-${idx}`} className="panel" style={{ padding: 12 }}>
-                              <div style={{ display: 'flex', justifyContent: 'space-between', gap: 12, marginBottom: 8 }}>
-                                <strong>{sub.Name || '(unnamed subscription)'}</strong>
-                                <span className="muted2">{sub.SubscriptionPolicy}</span>
-                              </div>
-                              <div className="muted2" style={{ marginBottom: 6 }}>
-                                Subscription ID: {sub.SubscriptionID || 'N/A'}
-                              </div>
-                              <div className="muted2" style={{ marginBottom: 6 }}>
-                                Number of clients: {sub.NumberOfClients}
-                              </div>
-                              <div className="muted2" style={{ marginBottom: 6 }}>
-                                Expiration time: {sub.ExpirationTime}
-                              </div>
-                              <div className="muted2">
-                                Connected clients: {sub.ConnectedClients.length ? sub.ConnectedClients.join(', ') : 'None'}
-                              </div>
-                            </div>
-                          ))}
-                        </div>
-                      </div>
-                    ) : null}
-                    <div className="muted2" style={{ marginTop: 10, marginBottom: 8 }}>
-                      Raw subscriptions response
-                    </div>
-                    <JsonBlock value={topicSubscriptions} />
-                  </div>
-
-                  <div>
-                    <div className="sectionTitle">Lookup subscription</div>
-                    <div className="fieldRow" style={{ marginBottom: 10 }}>
-                      <input
-                        type="text"
-                        placeholder="subscriptionId"
-                        value={subscriptionId}
-                        onChange={(e) => setSubscriptionId(e.target.value)}
-                      />
-                      <button disabled={busy || subscriptionId.trim().length === 0} onClick={handleFetchSubscription}>
-                        Fetch
-                      </button>
-                    </div>
-                    <JsonBlock value={subscriptionDetail} />
-                  </div>
-
-                  <div>
-                    <div className="fieldRow" style={{ justifyContent: 'space-between', marginBottom: 10 }}>
-                      <div className="sectionTitle" style={{ margin: 0 }}>
-                        Client subscription managers
-                      </div>
-                      <button disabled={busy} onClick={refreshClientSubscriptionManagers}>
-                        Refresh
-                      </button>
-                    </div>
                     {clientSubscriptionManagers.length === 0 ? (
                       <div className="muted">No client subscription manager details returned yet.</div>
                     ) : (
-                      <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                      <div className="client-managers-grid">
                         {clientSubscriptionManagers.map((item, idx) => (
-                          <div key={`${item.ClientID}-${idx}`} className="panel" style={{ padding: 12 }}>
-                            <div style={{ display: 'flex', justifyContent: 'space-between', gap: 12, marginBottom: 8 }}>
-                              <strong>{item.ClientID || '(unknown client)'}</strong>
-                              <span className="muted2">Messages: {item.MessageCount}</span>
+                          <div key={`${item.ClientID}-${idx}`} className="metric-card" style={{ padding: 20 }}>
+                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 16 }}>
+                              <div style={{ wordBreak: 'break-all', fontWeight: 600, color: 'var(--text)' }}>
+                                {item.ClientID || '(unknown client)'}
+                              </div>
+                              <div className="topic-msg-count" style={{ background: 'rgba(124, 92, 255, 0.2)', color: '#a5b4fc', marginLeft: 12, flexShrink: 0 }}>
+                                {item.MessageCount} msgs
+                              </div>
                             </div>
-                            <div className="muted2" style={{ marginBottom: 6 }}>
-                              Last activity time: {formatDisplayDate(item.LastActivityTime)}
+                            
+                            <div className="muted2" style={{ fontSize: 12, marginBottom: 8, display: 'flex', alignItems: 'center', gap: 6 }}>
+                              {Icons.clock} <span style={{ width: 75 }}>Last Activity:</span> <span style={{ color: 'var(--text)' }}>{formatDisplayDate(item.LastActivityTime)}</span>
                             </div>
-                            <div className="muted2" style={{ marginBottom: 6 }}>
-                              Update time: {formatDisplayDate(item.UpdateTime)}
+                            <div className="muted2" style={{ fontSize: 12, marginBottom: 8, display: 'flex', alignItems: 'center', gap: 6 }}>
+                              {Icons.transfer} <span style={{ width: 75 }}>Update Time:</span> <span style={{ color: 'var(--text)' }}>{formatDisplayDate(item.UpdateTime)}</span>
                             </div>
-                            <div className="muted2">Poll time: {formatDisplayDate(item.PollTime)}</div>
+                            <div className="muted2" style={{ fontSize: 12, display: 'flex', alignItems: 'center', gap: 6 }}>
+                              {Icons.queue} <span style={{ width: 75 }}>Poll:</span> <span style={{ color: 'var(--text)' }}>{formatDisplayDate(item.PollTime)}</span>
+                            </div>
                           </div>
                         ))}
                       </div>
                     )}
                   </div>
-                </div>
+                )}
+
+                {pubSubView === 'lookup' && (
+                  <div className="search-dashboard">
+                    <div className="metric-icon blue" style={{ margin: '0 auto 20px', width: 48, height: 48 }}>
+                      {Icons.code}
+                    </div>
+                    <div className="overview-title" style={{ fontSize: 20, marginBottom: 8 }}>Find Subscription</div>
+                    <div className="muted" style={{ marginBottom: 24 }}>Enter a Subscription ID to retrieve specific configuration and payload history.</div>
+                    
+                    <div className="search-input-wrapper">
+                      <input
+                        type="text"
+                        placeholder="e.g. sub-xyz-123"
+                        value={subscriptionId}
+                        onChange={(e) => setSubscriptionId(e.target.value)}
+                        style={{ flex: 1, borderTopRightRadius: 0, borderBottomRightRadius: 0 }}
+                      />
+                      <button 
+                        className="primary" 
+                        disabled={busy || subscriptionId.trim().length === 0} 
+                        onClick={handleFetchSubscription}
+                        style={{ padding: '0 24px', borderTopLeftRadius: 0, borderBottomLeftRadius: 0 }}
+                      >
+                        {busy ? 'Fetching…' : 'Fetch'}
+                      </button>
+                    </div>
+
+                    {subscriptionDetail && (
+                      <div className="raw-data-container" style={{ marginTop: 24, textAlign: 'left' }}>
+                        <div className="raw-data-header">Result JSON</div>
+                        <div className="raw-data-content">
+                          <JsonBlock value={subscriptionDetail} />
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                )}
               </div>
             ) : null}
           </>

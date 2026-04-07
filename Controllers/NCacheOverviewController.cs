@@ -35,7 +35,7 @@ public class NCacheOverviewController : ControllerBase
      
         var clrReader = new ClrObjectReader();
 
-        var runtimeContextNavigator = clrReader.From(clrObject);
+        var runtimeContextNavigator = clrReader.WithHeap(runtime.Heap).From(clrObject);
 
         var messageManagerClr  = runtime.Heap.EnumerateObjects().Where(obj => obj.Type?.Name == "Alachisoft.NCache.Caching.Messaging.MessageManager").First();
 

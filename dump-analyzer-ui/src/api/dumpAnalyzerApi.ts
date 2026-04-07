@@ -27,7 +27,6 @@ export type TopicDto = {
   TopicType: string
   Subscribers: number
   Subscriptions: number
-  Publishers: number
   Messages: number
   DurableShared: number
   DurableExclusive: number
@@ -133,7 +132,6 @@ export async function getTopics(token: string): Promise<TopicDto[]> {
       TopicType: String(readAny(obj, 'TopicType', '') ?? ''),
       Subscribers: Number(readAny(obj, 'Subscribers', 0) ?? 0),
       Subscriptions: Number(readAny(obj, 'Subscriptions', 0) ?? 0),
-      Publishers: Number(readAny(obj, 'Publishers', 0) ?? 0),
       Messages: Number(readAny(obj, 'Messages', 0) ?? 0),
       DurableShared: Number(readAny(obj, 'DurableShared', 0) ?? 0),
       DurableExclusive: Number(readAny(obj, 'DurableExclusive', 0) ?? 0),
