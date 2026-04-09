@@ -52,6 +52,13 @@ export type ClientSubscriptionManagerDto = {
   MessageCount: number
 }
 
+export type ThreadStackDto = {
+  ManagedThreadId: number
+  OSThreadId: string
+  OSIdDecimal: number
+  StackFrames: string[]
+}
+
 export async function loadDump(path: string): Promise<{ token: string }> {
   // Prefer the explicit dump controller route (matches your current MVP).
   const res = await apiFetch<LoadDumpResponse>('/api/dump/load', {
@@ -167,3 +174,20 @@ export async function getClientSubscriptionManagers(token: string): Promise<Clie
   })
 }
 
+export async function getThreads(token: string): Promise<ThreadStackDto[]> {
+  const res = await apiFetch<unknown>('/api/ncache/threads', { token })
+  
+  if (!Array.isArray(res)) return []
+  
+  return res.map((item) => {
+    const obj = item as Record<string, unknown>
+    return {
+      ManagedThreadId: Number(readAny(obj, 'ManagedThreadId', 0)),
+        OSThreadId: String(readAny(obj, 'OsThreadId', 0)),
+      OSIdDecimal: Number(readAny(obj, 'OsIdDecimal', 0)),
+      StackFrames: Array.isArray(readAny(obj, 'StackFrames', []))
+        ? (readAny(obj, 'StackFrames', []) as unknown[]).map(f => String(f))
+        : []
+    }
+  })
+}

@@ -20,4 +20,9 @@ public class CacheOverviewResponse
 
     public int CpuUtilization { get; set; }
     public DateTime? MessageManagerLastTime { get; internal set; }
+
+    public string DebugSessionTimeDisplay { get; set; }
+    public string SystemUptimeDisplay { get; set; }
+    public string ProcessUptimeDisplay { get; set; }
 }
+

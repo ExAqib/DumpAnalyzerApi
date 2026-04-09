@@ -4,6 +4,7 @@ using DumpAnalyzerApi.Navigators;
 using DumpAnalyzerApi.Services;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Diagnostics.Runtime;
+using Microsoft.Diagnostics.Runtime.Interfaces;
 
 namespace DumpAnalyzerApi.Controllers;
 
@@ -32,14 +33,20 @@ public class NCacheOverviewController : ControllerBase
 
         var clrObject = runtime.Heap.EnumerateObjects().Where(obj => obj.Type?.Name == "Alachisoft.NCache.Caching.CacheRuntimeContext").First();
         var clrHeapStorageObject = runtime.Heap.EnumerateObjects().Where(obj => obj.Type?.Name == "Alachisoft.NCache.Storage.ClrHeapStorageProvider").First();
-     
+
         var clrReader = new ClrObjectReader();
 
         var runtimeContextNavigator = clrReader.WithHeap(runtime.Heap).From(clrObject);
 
-        var messageManagerClr  = runtime.Heap.EnumerateObjects().Where(obj => obj.Type?.Name == "Alachisoft.NCache.Caching.Messaging.MessageManager").First();
+        var messageManagerClr = runtime.Heap.EnumerateObjects().Where(obj => obj.Type?.Name == "Alachisoft.NCache.Caching.Messaging.MessageManager").First();
 
+        var readers = new Microsoft.Diagnostics.Runtime.Utilities.DbgEng.DbgEngIDataReader(session.DataReader.DisplayName);
 
+        readers.DebugControl.GetCurrentSystemUpTime(out TimeSpan systemUptime);
+        readers.DebugControl.GetCurrentTimeDate(out DateTime? debugSessionTime);
+        readers.DebugSystemObjects.GetCurrentProcessUpTime(out TimeSpan processUptime);
+        var miniReader = session.DataReader;
+        GetDumpTime(miniReader);
         var response = new CacheOverviewResponse
         {
             CacheName = runtimeContextNavigator
@@ -98,13 +105,25 @@ public class NCacheOverviewController : ControllerBase
                         .DateTimeNavigator("_expirationTimestamp")
                         .ReadDateTime(),
 
-            CpuUtilization = runtime?.ThreadPool?.CpuUtilization ?? -1
+            CpuUtilization = runtime?.ThreadPool?.CpuUtilization ?? -1,
+
+            DebugSessionTimeDisplay = GetDumpTime(session.DataReader).ToString(),
+            SystemUptimeDisplay = $"{systemUptime.Days} days {systemUptime:hh\\:mm\\:ss}",
+            ProcessUptimeDisplay = $"{processUptime.Days} days {processUptime:hh\\:mm\\:ss}"
 
         };
+        readers.Dispose();
 
         return Ok(response);
     }
 
-
-    
+    private static DateTime GetDumpTime(IDataReader reader)
+    {
+        if (reader is MinidumpReader miniReader)
+        {
+              DateTime time = DateTimeOffset.FromUnixTimeSeconds(miniReader.TimeStamp).UtcDateTime.ToLocalTime();
+            return time;
+        }
+        return default;
+    }
 }

@@ -9,8 +9,10 @@ import {
     getSubscription,
     getTopicSubscriptions,
     getTopics,
+    getThreads,
     loadDump,
     TopicDto,
+    ThreadStackDto,
 } from './api/dumpAnalyzerApi'
 import { clearToken, getLastDumpPath, getToken, setLastDumpPath, setToken } from './lib/session'
 
@@ -22,7 +24,7 @@ function App() {
     const [busy, setBusy] = useState(false)
     const [error, setError] = useState<string | null>(null)
 
-    const [tab, setTab] = useState<'overview' | 'core' | 'pubsub'>('overview')
+    const [tab, setTab] = useState<'overview' | 'core' | 'pubsub' | 'threads'>('overview')
     const [showRawOverview, setShowRawOverview] = useState(false)
     const [pubSubView, setPubSubView] = useState<'topics' | 'clients' | 'lookup'>('topics')
 
@@ -44,6 +46,12 @@ function App() {
     const [subscriptionId, setSubscriptionId] = useState('')
     const [subscriptionDetail, setSubscriptionDetailState] = useState<unknown>(null)
     const [clientSubscriptionManagers, setClientSubscriptionManagersState] = useState<ClientSubscriptionManagerDto[]>([])
+    const [threads, setThreadsState] = useState<ThreadStackDto[]>([])
+   
+
+    // ADD these two instead:
+    const [expandedThreads, setExpandedThreads] = useState<Set<number>>(new Set())
+    const [threadSearch, setThreadSearch] = useState('')
 
     const tokenShort = useMemo(() => (token ? `${token.slice(0, 8)}…${token.slice(-6)}` : ''), [token])
 
@@ -77,6 +85,11 @@ function App() {
         setSubscriptionId('')
         setSubscriptionDetailState(null)
         setClientSubscriptionManagersState([])
+        setThreadsState([])
+        setExpandedThreads(new Set())
+
+
+
     }
 
     useEffect(() => {
@@ -145,8 +158,26 @@ function App() {
         if (tab === 'pubsub' && clientSubscriptionManagers.length === 0) {
             refreshClientSubscriptionManagers()
         }
+        if (tab === 'threads' && threads.length === 0) {
+            refreshThreads()
+        }
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [tab, token])
+
+    async function refreshThreads() {
+        if (!token) return
+        setError(null)
+        setBusy(true)
+        try {
+            const list = await getThreads(token)
+            setThreadsState(list)
+        } catch (e: any) {
+            setError(e?.message ?? 'Failed to load threads')
+            if (e?.status === 401) handleLogout()
+        } finally {
+            setBusy(false)
+        }
+    }
 
     useEffect(() => {
         if (!token || !selectedTopic) return
@@ -205,8 +236,9 @@ function App() {
         if (!obj) return 'N/A'
         const camelKey = key.charAt(0).toLowerCase() + key.slice(1)
         const value = obj[key] ?? obj[camelKey]
+               
         return value === undefined || value === null || value === '' ? 'N/A' : String(value)
-    }
+    } 
 
     function OverviewStat({ label, value }: { label: string; value: string }) {
         return (
@@ -344,12 +376,12 @@ function App() {
                     <div className="panel">
                         <div className="sectionTitle">Load dump</div>
                         <div className="muted" style={{ marginBottom: 10 }}>
-                            Enter the full path to the dump file on the machine running the API.
+                            Place your dump file in the folder \\20.200.20.46\dumps and enter the full path. 
                         </div>
                         <div className="fieldRow">
                             <input
                                 type="text"
-                                placeholder="e.g. C:\\dumps\\ncache.dmp"
+                                placeholder="e.g. \\20.200.20.46\Dumps\CacheHostProcess.dmp"
                                 value={dumpPath}
                                 onChange={(e) => setDumpPath(e.target.value)}
                             />
@@ -358,22 +390,34 @@ function App() {
                             </button>
                         </div>
                         <div className="muted2" style={{ marginTop: 10 }}>
-                            Calls POST /api/dump/load and stores the returned token. All subsequent requests send it via the token
-                            header.
+                            For testing, you can use the sample dumps: <br></br>
+                            <span style={{ fontFamily: "monospace" }}>
+                                \\20.200.20.46\Dumps\ecsMessagingCache_21-01-2026-12-55-02_10.10.10.210.dmp<br></br>
+                                \\20.200.20.46\Dumps\Alachisoft.NCache.CacheHost.DMP
+                                
+                            </span>
                         </div>
+
                     </div>
                 ) : (
                     <>
                         <div className="tabs">
                             <div className={`tab ${tab === 'overview' ? 'tabActive' : ''}`} onClick={() => setTab('overview')}>
                                 Overview
+                            </div>   
+
+                            <div className={`tab ${tab === 'threads' ? 'tabActive' : ''}`} onClick={() => setTab('threads')}>
+                                Call Stack
                             </div>
+
+                            <div className={`tab ${tab === 'pubsub' ? 'tabActive' : ''}`} onClick={() => setTab('pubsub')}>
+                                Pub/Sub
+                            </div>                           
+
                             <div className={`tab ${tab === 'core' ? 'tabActive' : ''}`} onClick={() => setTab('core')}>
                                 Core
                             </div>
-                            <div className={`tab ${tab === 'pubsub' ? 'tabActive' : ''}`} onClick={() => setTab('pubsub')}>
-                                Pub/Sub
-                            </div>
+
                         </div>
 
                         {tab === 'overview' ? (
@@ -392,7 +436,12 @@ function App() {
                                     <div className="overview-title-group">
                                         <h2 className="overview-title">{readOverviewValue(overview, 'CacheName')}</h2>
                                         <div className="overview-subtitle">
-                                            Process ID: {readOverviewValue(overview, 'ProcessId')} &bull; Status: Active
+                                            Process ID: {readOverviewValue(overview, 'ProcessId')}  
+                                        </div>
+                                            <div className="overview-subtitle">
+                                                Dump Time: {readOverviewValue(overview, 'debugSessionTimeDisplay')}
+
+
                                         </div>
                                     </div>
                                     <div className="status-badge">
@@ -674,7 +723,7 @@ function App() {
                                                     <details style={{ marginTop: 24, cursor: 'pointer' }}>
                                                         <summary className="muted" style={{ padding: '8px 0', borderTop: '1px solid var(--border)' }}>Show Raw JSON</summary>
                                                         <div className="raw-data-container" style={{ marginTop: 12 }}>
-                                                            <JsonBlock value={topicSubscriptions} />
+                                                                <JsonBlock value={topics} />
                                                         </div>
                                                     </details>
                                                 </>
@@ -745,18 +794,180 @@ function App() {
                                             </button>
                                         </div>
 
-                                        {subscriptionDetail && (
-                                            <div className="raw-data-container" style={{ marginTop: 24, textAlign: 'left' }}>
-                                                <div className="raw-data-header">Result JSON</div>
-                                                <div className="raw-data-content">
-                                                    <JsonBlock value={subscriptionDetail} />
-                                                </div>
-                                            </div>
-                                        )}
+                                        {/*{subscriptionDetail && (*/}
+                                        {/*    <div className="raw-data-container" style={{ marginTop: 24, textAlign: 'left' }}>*/}
+                                        {/*        <div className="raw-data-header">Result JSON</div>*/}
+                                        {/*        <div className="raw-data-content">*/}
+                                        {/*            <JsonBlock value={subscriptionDetail} />*/}
+                                        {/*        </div>*/}
+                                        {/*    </div>*/}
+                                        {/*)}*/}
                                     </div>
                                 )}
                             </div>
                         ) : null}
+
+                            {tab === 'threads' ? (
+                                <div className="enterprise-panel">
+                                    <div className="overview-header" style={{ marginBottom: 16, paddingBottom: 16 }}>
+                                        <div className="overview-title-group">
+                                            <h2 className="overview-title">CLR Thread Call Stacks</h2>
+                                            <div className="overview-subtitle">
+                                                Inspect all managed threads and their full execution call frames
+                                            </div>
+                                        </div>
+                                        <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                                            <div className="topic-msg-count" style={{ background: 'rgba(41, 211, 255, 0.15)', color: '#29d3ff' }}>
+                                                {threads.length} threads
+                                            </div>
+                                            <button disabled={busy} onClick={refreshThreads}>
+                                                {busy ? 'Loading…' : 'Refresh'}
+                                            </button>
+                                        </div>
+                                    </div>
+
+                                    {threads.length === 0 ? (
+                                        <div style={{ padding: '48px 0', textAlign: 'center' }}>
+                                            <div className="metric-icon blue" style={{ margin: '0 auto 16px', width: 48, height: 48 }}>
+                                                {Icons.cpu}
+                                            </div>
+                                            <div className="overview-title" style={{ fontSize: 18, marginBottom: 8 }}>No thread data available</div>
+                                            <div className="muted">Ensure the backend returns populated thread stack items.</div>
+                                        </div>
+                                    ) : (
+                                        <>
+                                            <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 16, flexWrap: 'wrap' }}>
+                                                <div style={{ position: 'relative', flex: 1, minWidth: 220 }}>
+                                                    <input
+                                                        type="text"
+                                                        placeholder="Search by frame text, e.g. Alachisoft, TcpChannel…"
+                                                        value={threadSearch}
+                                                        onChange={(e) => setThreadSearch(e.target.value)}
+                                                        style={{ width: '100%', paddingLeft: 36 }}
+                                                    />
+                                                    <span style={{
+                                                        position: 'absolute', left: 10, top: '50%', transform: 'translateY(-50%)',
+                                                        color: 'var(--muted, #64748b)', pointerEvents: 'none'
+                                                    }}>
+                                                        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                                            <circle cx="11" cy="11" r="8" /><line x1="21" y1="21" x2="16.65" y2="16.65" />
+                                                        </svg>
+                                                    </span>
+                                                </div>
+                                                <button
+                                                    style={{ fontSize: 12, padding: '6px 14px', whiteSpace: 'nowrap' }}
+                                                    onClick={() => {
+                                                        const allIds = new Set(threads.map(t => t.ManagedThreadId))
+                                                        setExpandedThreads(allIds)
+                                                    }}
+                                                >
+                                                    Expand All
+                                                </button>
+                                                <button
+                                                    style={{ fontSize: 12, padding: '6px 14px', whiteSpace: 'nowrap' }}
+                                                    onClick={() => setExpandedThreads(new Set())}
+                                                >
+                                                    Collapse All
+                                                </button>
+                                            </div>
+
+                                            {(() => {
+                                                const query = threadSearch.trim().toLowerCase()
+                                                const filtered = query
+                                                    ? threads.filter(t =>
+                                                        t.StackFrames.some(f => f.toLowerCase().includes(query))
+                                                    )
+                                                    : threads
+
+                                                if (filtered.length === 0) {
+                                                    return (
+                                                        <div style={{ padding: '32px 0', textAlign: 'center' }}>
+                                                            <div className="muted">No threads match your search.</div>
+                                                        </div>
+                                                    )
+                                                }
+
+                                                return (
+                                                    <div className="threads-list">
+                                                        {filtered.map((t) => {
+                                                            const isExpanded = expandedThreads.has(t.ManagedThreadId)
+                                                            return (
+                                                                <div key={t.ManagedThreadId} className="thread-card">
+                                                                    <div
+                                                                        className="thread-header"
+                                                                        onClick={() => {
+                                                                            setExpandedThreads(prev => {
+                                                                                const next = new Set(prev)
+                                                                                if (next.has(t.ManagedThreadId)) next.delete(t.ManagedThreadId)
+                                                                                else next.add(t.ManagedThreadId)
+                                                                                return next
+                                                                            })
+                                                                        }}
+                                                                        style={{ cursor: 'pointer' }}
+                                                                    >
+                                                                        <div className="thread-header-title">
+                                                                            <div style={{
+                                                                                transform: isExpanded ? 'rotate(90deg)' : 'rotate(0deg)',
+                                                                                transition: 'transform 0.2s ease',
+                                                                                display: 'flex', alignItems: 'center', flexShrink: 0
+                                                                            }}>
+                                                                                {Icons.chevron}
+                                                                            </div>
+                                                                            <div className="thread-id-badge">Thread #{t.ManagedThreadId}</div>
+                                                                            <span className="frame-pill frame-pill-total">{t.StackFrames.length} frames</span>
+                                                                        </div>
+                                                                        <div className="thread-ids-group">
+                                                                            <div className="thread-property">
+                                                                                <span className="muted2">Managed ID</span>
+                                                                                <strong style={{ color: 'var(--text)', fontFamily: 'monospace' }}>{t.ManagedThreadId}</strong>
+                                                                            </div>
+                                                                            <div className="thread-id-divider" />
+                                                                            <div className="thread-property">
+                                                                                <span className="muted2">OS ID (hex)</span>
+                                                                                <strong style={{ color: '#29d3ff', fontFamily: 'monospace' }}>0x{t.OSThreadId}</strong>
+                                                                            </div>
+                                                                            <div className="thread-id-divider" />
+                                                                            <div className="thread-property">
+                                                                                <span className="muted2">OS ID (dec)</span>
+                                                                                <strong style={{ color: 'var(--text)', fontFamily: 'monospace' }}>{t.OSIdDecimal}</strong>
+                                                                            </div>
+                                                                        </div>
+                                                                    </div>
+
+                                                                    {isExpanded && (
+                                                                        <div className="thread-stack-container">
+                                                                            <div className="stack-frame-header">
+                                                                                <span>Call Stack — {t.StackFrames.length} frames</span>
+                                                                                <span className="muted2" style={{ fontSize: 11 }}>top → bottom</span>
+                                                                            </div>
+                                                                            {t.StackFrames.map((frame, idx) => {
+                                                                                const highlight = query && frame.toLowerCase().includes(query)
+                                                                                return (
+                                                                                    <div
+                                                                                        key={idx}
+                                                                                        className="stack-frame-row"
+                                                                                        style={{
+                                                                                            borderLeft: highlight ? '3px solid #29d3ff' : '3px solid transparent',
+                                                                                            background: highlight ? 'rgba(41,211,255,0.06)' : undefined,
+                                                                                        }}
+                                                                                    >
+                                                                                        <span className="stack-frame-index">{idx}</span>
+                                                                                        <span className="stack-frame-text">{frame}</span>
+                                                                                    </div>
+                                                                                )
+                                                                            })}
+                                                                        </div>
+                                                                    )}
+                                                                </div>
+                                                            )
+                                                        })}
+                                                    </div>
+                                                )
+                                            })()}
+                                        </>
+                                    )}
+                                </div>
+                            ) : null}
                     </>
                 )}
 
