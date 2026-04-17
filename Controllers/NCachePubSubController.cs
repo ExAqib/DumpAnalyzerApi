@@ -20,7 +20,7 @@ public class NCachePubSubController : ControllerBase
     [HttpGet("topics")]
     public IActionResult GetTopics([FromHeader(Name = "token")] Guid token)
     {
-        var dataTarget = _sessionManager.GetSession(token);
+        var dataTarget = _sessionManager.GetDataTargetFromSession(token);
         if (dataTarget == null) return Unauthorized(new { Error = "Invalid or expired token." });
 
         using var runtime = dataTarget.ClrVersions[0].CreateRuntime();
@@ -35,7 +35,7 @@ public class NCachePubSubController : ControllerBase
     [HttpGet("topics/{topicName}/subscriptions")]
     public IActionResult GetTopicSubscriptions([FromHeader(Name = "token")] Guid token, string topicName)
     {
-        var session = _sessionManager.GetSession(token);
+        var session = _sessionManager.GetDataTargetFromSession(token);
         if (session == null) return Unauthorized(new { Error = "Invalid or expired token." });
 
         return Ok(new TopicSubscriptionsResponse
@@ -47,7 +47,7 @@ public class NCachePubSubController : ControllerBase
     [HttpGet("subscriptions/{subscriptionId}")]
     public IActionResult GetSubscription([FromHeader(Name = "token")] Guid token, string subscriptionId)
     {
-        var session = _sessionManager.GetSession(token);
+        var session = _sessionManager.GetDataTargetFromSession(token);
         if (session == null) return Unauthorized(new { Error = "Invalid or expired token." });
 
         return Ok(new SubscriptionResponse
@@ -64,7 +64,7 @@ public class NCachePubSubController : ControllerBase
     [HttpGet("client-subscription-managers")]
     public IActionResult GetClientSubscriptionManagers([FromHeader(Name = "token")] Guid token)
     {
-        var dataTarget = _sessionManager.GetSession(token);
+        var dataTarget = _sessionManager.GetDataTargetFromSession(token);
         if (dataTarget == null) return Unauthorized(new { Error = "Invalid or expired token." });
 
         using var runtime = dataTarget.ClrVersions[0].CreateRuntime();

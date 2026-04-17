@@ -26,7 +26,7 @@ public class NCacheThreadsController : ControllerBase
             return Unauthorized(new { message = "Token is required" });
         }
 
-        var session = _sessionManager.GetSession(token);
+        var session = _sessionManager.GetDataTargetFromSession(token);
         if (session == null)
         {
             return Unauthorized(new { Error = "Invalid or expired token." });

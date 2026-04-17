@@ -5,7 +5,7 @@ namespace DumpAnalyzerApi.Services;
 
 public class DumpSessionManager : IDisposable
 {
-    private readonly ConcurrentDictionary<Guid, DataTarget> _sessions = new();
+    private readonly ConcurrentDictionary<Guid, DumpSession> _sessions = new();
 
     public Guid LoadDump(string dumpPath)
     {
@@ -24,22 +24,35 @@ public class DumpSessionManager : IDisposable
         }
 
         var token = Guid.NewGuid();
-        _sessions.TryAdd(token, dataTarget);
+
+        var session = new DumpSession()
+        {
+            Token = token,
+            DataTarget = dataTarget,
+            DumpPath = dumpPath
+        };
+
+        _sessions.TryAdd(token, session);
 
         return token;
     }
 
-    public DataTarget? GetSession(Guid token)
+    public DataTarget? GetDataTargetFromSession(Guid token)
     {
-        _sessions.TryGetValue(token, out var dataTarget);
-        return dataTarget;
+        return GetSession(token)?.DataTarget;
+    }
+
+    public DumpSession? GetSession(Guid token)
+    {
+        _sessions.TryGetValue(token, out var session);
+        return session;
     }
     
     public bool UnloadDump(Guid token)
     {
         if (_sessions.TryRemove(token, out var dataTarget))
         {
-            dataTarget.Dispose();
+            dataTarget?.DataTarget?.Dispose();
             return true;
         }
         return false;
@@ -49,7 +62,7 @@ public class DumpSessionManager : IDisposable
     {
         foreach (var session in _sessions.Values)
         {
-            session.Dispose();
+            session?.DataTarget?.Dispose();
         }
         _sessions.Clear();
     }

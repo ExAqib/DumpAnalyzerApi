@@ -18,7 +18,7 @@ public class NCacheCoreController : ControllerBase
     [HttpGet("ownership-map")]
     public IActionResult GetOwnershipMap([FromHeader(Name = "token")] Guid token)
     {
-        var session = _sessionManager.GetSession(token);
+        var session = _sessionManager.GetDataTargetFromSession(token);
         if (session == null) return Unauthorized(new { Error = "Invalid or expired token." });
 
         var map = new Dictionary<string, List<BucketDto>>();
@@ -28,7 +28,7 @@ public class NCacheCoreController : ControllerBase
     [HttpGet("previous-hash-map")]
     public IActionResult GetPreviousHashMap([FromHeader(Name = "token")] Guid token)
     {
-        var session = _sessionManager.GetSession(token);
+        var session = _sessionManager.GetDataTargetFromSession(token);
         if (session == null) return Unauthorized(new { Error = "Invalid or expired token." });
 
         return Ok(new HashMapResponse
@@ -40,7 +40,7 @@ public class NCacheCoreController : ControllerBase
     [HttpGet("installed-hash-map")]
     public IActionResult GetInstalledHashMap([FromHeader(Name = "token")] Guid token)
     {
-        var session = _sessionManager.GetSession(token);
+        var session = _sessionManager.GetDataTargetFromSession(token);
         if (session == null) return Unauthorized(new { Error = "Invalid or expired token." });
 
         return Ok(new HashMapResponse

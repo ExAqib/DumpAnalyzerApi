@@ -3,7 +3,7 @@ namespace DumpAnalyzerApi.DTOs;
 
 public class CacheOverviewResponse
 {
-    public string CacheName { get; set; } = string.Empty;
+    public string? CacheName { get; set; } = string.Empty;
     public int ServersCount { get; set; }
     public List<string> Servers { get; set; } = new();
     public int CacheCount { get; set; }
@@ -21,8 +21,6 @@ public class CacheOverviewResponse
     public int CpuUtilization { get; set; }
     public DateTime? MessageManagerLastTime { get; internal set; }
 
-    public string DebugSessionTimeDisplay { get; set; }
-    public string SystemUptimeDisplay { get; set; }
-    public string ProcessUptimeDisplay { get; set; }
+    public string DebugSessionTimeDisplay { get; set; } 
 }
 

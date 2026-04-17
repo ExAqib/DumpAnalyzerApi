@@ -17,6 +17,7 @@ namespace DumpAnalyzerApi.Navigators
             if (field == null) return new ObjectNavigator(default, _reader);
 
             var inner = field.ReadObject(_current, interior: false);
+         
             return new ObjectNavigator(inner, _reader);
         }
 
