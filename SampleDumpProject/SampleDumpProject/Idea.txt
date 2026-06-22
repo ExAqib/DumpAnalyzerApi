@@ -1,0 +1,26 @@
+﻿
+Tables
+[
+	{
+		"Name": "Orders",
+		"Path": "Your Path",
+		"Fields": {
+			"id": {
+				"Member": "Id",
+				"Type": "int", // Can be Primitive Type / Object / Enumerable
+			}, 
+			"customer": {
+				"Member": "Customer",
+				"Type": "Table[Customer]", // It means that reference will be stored here and Customer Table will be created Seperately.
+			},
+			
+		}
+	},
+	{
+		"Name": "OrderItemRelation",
+		
+	}
+	"Order":{
+		
+	}
+]
