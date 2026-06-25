@@ -1,0 +1,12 @@
+{
+	"ComplexOrderSystem.Order": {
+		"Id": "int",
+		"Customer": "ComplexOrderSystem.Customer",
+		"Items": "List<ComplexOrderSystem.OrderItem>",
+		"Status": "Enum<ComplexOrderSystem.OrderStatus>",
+		"CreatedAt": "DateTime"
+	},
+	"ComplexOrderSystem.Customer": {},
+	"ComplexOrderSystem.OrderItem": {},
+	"ComplexOrderSystem.OrderStatus": {}
+}
