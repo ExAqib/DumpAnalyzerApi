@@ -1,0 +1,12 @@
+{
+    "Orders": {
+        "Root": {
+            "Type": "System.Collections.Generic.List<ComplexOrderSystem.Order>",
+            "Index": 0,
+            "MemoryType": "Heap"
+        },
+        "Path": [
+        ],
+        "Type": "List<ComplexOrderSystem.Order>"
+    }
+}
